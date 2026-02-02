@@ -1,14 +1,15 @@
 import { create } from 'zustand';
-import { Member, Campaign, AttendanceRecord, Class, Lead, Product, Trainer } from './supabase';
+// import { Member, Campaign, AttendanceRecord, Class, Lead, Product, Trainer } from './supabase';
+// Note: Types temporarily removed - using 'any' for now until proper types are defined
 
 // Member store
 interface MemberStore {
-    members: Member[];
+    members: any[];
     loading: boolean;
     error: string | null;
-    setMembers: (members: Member[]) => void;
-    addMember: (member: Member) => void;
-    updateMember: (id: string, updates: Partial<Member>) => void;
+    setMembers: (members: any[]) => void;
+    addMember: (member: any) => void;
+    updateMember: (id: string, updates: Partial<any>) => void;
     deleteMember: (id: string) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
@@ -34,12 +35,12 @@ export const useMemberStore = create<MemberStore>((set) => ({
 
 // Campaign store
 interface CampaignStore {
-    campaigns: Campaign[];
+    campaigns: any[];
     loading: boolean;
     error: string | null;
-    setCampaigns: (campaigns: Campaign[]) => void;
-    addCampaign: (campaign: Campaign) => void;
-    updateCampaign: (id: string, updates: Partial<Campaign>) => void;
+    setCampaigns: (campaigns: any[]) => void;
+    addCampaign: (campaign: any) => void;
+    updateCampaign: (id: string, updates: Partial<any>) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
 }
@@ -60,12 +61,12 @@ export const useCampaignStore = create<CampaignStore>((set) => ({
 
 // Attendance store
 interface AttendanceStore {
-    records: AttendanceRecord[];
+    records: any[];
     loading: boolean;
     error: string | null;
-    setRecords: (records: AttendanceRecord[]) => void;
-    addRecord: (record: AttendanceRecord) => void;
-    updateRecord: (id: string, updates: Partial<AttendanceRecord>) => void;
+    setRecords: (records: any[]) => void;
+    addRecord: (record: any) => void;
+    updateRecord: (id: string, updates: Partial<any>) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
 }
