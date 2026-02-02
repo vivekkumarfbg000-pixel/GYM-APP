@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { MobileDashboardSkeleton } from '@/components/shared/skeleton-loaders';
 
 export default function MobileDashboard() {
     const [name, setName] = useState('');
@@ -92,8 +93,12 @@ export default function MobileDashboard() {
     const isMembershipActive = memberData?.membership_status === 'active';
     const nextBillDate = memberData?.next_payment_date ? new Date(memberData.next_payment_date).toLocaleDateString() : 'N/A';
 
+    if (loading) {
+        return <MobileDashboardSkeleton />;
+    }
+
     return (
-        <div className="bg-gray-50 min-h-screen pb-24 relative">
+        <div className="bg-gray-50 min-h-screen pb-24 relative animate-in fade-in duration-500">
             {/* Header */}
             <div className="bg-blue-600 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-blue-200">
                 <div className="flex justify-between items-center mb-8">

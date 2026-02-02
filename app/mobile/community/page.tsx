@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Trophy, Users, Flame, Heart, MessageCircle, Share2, Award, ChevronRight, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CommunityFeedSkeleton, LeaderboardSkeleton } from '@/components/shared/skeleton-loaders';
 
 export default function CommunityPage() {
     const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenges'>('feed');
@@ -91,14 +92,14 @@ export default function CommunityPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="min-h-screen bg-gray-50 pb-24 animate-in fade-in duration-300">
             {/* Header */}
-            <div className="bg-white sticky top-0 z-10 border-b border-gray-100">
+            <div className="bg-white sticky top-0 z-10 border-b border-gray-100 shadow-sm">
                 <div className="px-4 py-4 flex items-center justify-between">
                     <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
                         Community
                     </h1>
-                    <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs">
+                    <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs transition-transform-200 hover:scale-110">
                         {/* User Level - Hardcoded for demo, could filter from leaderboard */}
                         LVL 5
                     </div>
@@ -114,8 +115,21 @@ export default function CommunityPage() {
 
             {/* Content */}
             <div className="p-4 space-y-4">
-                {loading && feed.length === 0 && leaderboard.length === 0 && challenges.length === 0 ? (
-                    <div className="flex justify-center py-12 text-gray-400 animate-pulse">Loading...</div>
+                {loading ? (
+                    <>
+                        {activeTab === 'feed' && <CommunityFeedSkeleton />}
+                        {activeTab === 'leaderboard' && <LeaderboardSkeleton />}
+                        {activeTab === 'challenges' && (
+                            <div className="space-y-4">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm animate-pulse">
+                                        <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+                                        <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <>
                         {/* FEED TAB */}
