@@ -71,3 +71,52 @@ Open this URL on your mobile phone (or browser simulating mobile):
 - **"Save Failed"**: Check if your Supabase table `outdoor_workouts` exists (run the schema script if not).
 - **"Not logged in"**: If save fails, try logging out and in again to reset the ID.
 - **Map Empty**: OpenStreetMap requires internet access.
+
+## 8. Test Membership Approval Flow 🔐
+**New Feature:** Members cannot login until approved by Gym Owner.
+
+### Step 1: Register New Member
+1. Go to **http://localhost:3000/mobile/register**
+2. Sign up with a new email (e.g., `newuser@test.com`).
+3. You will see: **"Approval Pending"** screen.
+4. Try logging in at `/mobile/login` -> It will block you.
+
+### Step 2: Gym Owner Approval
+1. Go to **Owner Dashboard**: `http://localhost:3000/dashboard/members`
+2. Click **"Pending Approvals"** tab (top of list).
+3. You will see `newuser@test.com`.
+4. Click **"Approve"** (Green Button).
+
+### Step 3: Verify Login
+1. Go back to Mobile Login.
+2. Login as `newuser@test.com` (use password).
+3. **Success!** You are now in.
+
+### 💡 Admin Login
+To access the Owner Dashboard, you can (conceptually) use:
+- **Email:** `admin@gymflow.com`
+- **Password:** `admin123`
+*(Note: Current dashboard is open for dev, but API protects data)*
+
+## 9. Test Community & Gamification 🏆
+**New Feature:** Interact with other gym members and compete.
+
+### Step 1: Open Community Hub
+1. In the mobile app, click the **"Community"** icon in the bottom bar (Users Icon).
+2. You will land on the **Feed** tab.
+3. You should see demo posts from other members.
+
+### Step 2: Check Leaderboard
+1. Click the **"Ranking"** tab.
+2. See where you stand! (Demo data shows you at Rank 5).
+
+### Step 3: Join a Challenge
+1. Click the **"Challenges"** tab.
+2. See "30-Day Runner" and "Iron Lifter".
+3. Click "Join".
+
+### 💡 Note on Data
+**Real Data is now Active!** 📡
+- Posts you create will be saved to the database.
+- Challenges you join will be tracked permanently.
+- **Requirement:** You MUST run the `gamification-schema.sql` script for this to work. If you see "Failed to load data", the table is missing.

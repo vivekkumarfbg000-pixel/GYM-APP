@@ -1,49 +1,91 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Smartphone } from 'lucide-react';
+import { Smartphone, Lock, AlertCircle, Clock } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export default function MobileLoginPage() {
+function MobileLoginContent() {
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [pendingApproval, setPendingApproval] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get('registered') === 'true') {
+            setPendingApproval(true);
+        }
+    }, [searchParams]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            // Check if member exists via our API
-            const response = await fetch(`/api/members?search=${encodeURIComponent(email)}`);
-            const data = await response.json();
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, role: 'member' })
+            });
 
-            if (data.success && data.data && data.data.length > 0) {
-                // Find exact match
-                const member = data.data.find((m: any) => m.email.toLowerCase() === email.toLowerCase());
+            const data = await res.json();
 
-                if (member) {
-                    // Success - save to local storage (MVP auth security)
-                    localStorage.setItem('gymflow_member_id', member.id);
-                    localStorage.setItem('gymflow_member_name', member.name);
-                    toast.success(`Welcome back, ${member.name.split(' ')[0]}!`);
-                    router.push('/mobile/dashboard');
-                } else {
-                    toast.error('Email not found. Ask your gym owner to add you.');
-                }
+            if (data.success) {
+                // Success
+                localStorage.setItem('gymflow_member_id', data.user.id);
+                localStorage.setItem('gymflow_member_name', data.user.name);
+                toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`);
+                router.push('/mobile/dashboard');
             } else {
-                toast.error('Member not found');
+                if (res.status === 403) {
+                    setPendingApproval(true);
+                } else {
+                    toast.error(data.error || 'Login failed');
+                }
             }
         } catch (error) {
             console.error('Login error:', error);
-            toast.error('Failed to login. Try again.');
+            toast.error('Connection failed');
         } finally {
             setLoading(false);
         }
     };
+
+    if (pendingApproval) {
+        return (
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+                <div className="bg-yellow-50 p-6 rounded-full mb-6">
+                    <Clock size={48} className="text-yellow-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Approval Pending</h2>
+                <p className="text-gray-600 mb-8 max-w-xs mx-auto">
+                    Your account has been created! Please wait for the Gym Owner to approve your request.
+                </p>
+                <div className="space-y-3 w-full max-w-xs">
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.location.reload()}
+                    >
+                        Check Status Again
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => setPendingApproval(false)}
+                    >
+                        Back to Login
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
@@ -54,42 +96,64 @@ export default function MobileLoginPage() {
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">Member Login</h2>
                     <p className="mt-2 text-sm text-gray-600">
-                        Enter your registered email to access your workout companion
+                        Enter your credentials to continue
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                <form className="mt-8 space-y-4" onSubmit={handleLogin}>
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Email Address
-                            </label>
                             <Input
-                                id="email"
                                 type="email"
                                 required
-                                placeholder="you@example.com"
+                                placeholder="Email Address"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="mt-1"
+                                className="bg-gray-50 h-12"
+                            />
+                        </div>
+                        <div>
+                            <Input
+                                type="password"
+                                required
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="bg-gray-50 h-12"
                             />
                         </div>
                     </div>
 
                     <Button
                         type="submit"
-                        className="w-full"
+                        className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700"
                         disabled={loading}
                     >
-                        {loading ? 'Verifying...' : 'Continue'}
+                        {loading ? 'Verifying...' : 'Log In'}
                     </Button>
                 </form>
 
-                <div className="text-center text-xs text-gray-500 mt-8">
-                    <p>Demo Mode: Use any email from the dashboard</p>
-                    <p>Example: john.smith@example.com</p>
+                <div className="text-center mt-6">
+                    <p className="text-gray-500 text-sm">
+                        Don't have an account?{' '}
+                        <Link href="/mobile/register" className="text-blue-600 font-bold hover:underline">
+                            Register Here
+                        </Link>
+                    </p>
+                </div>
+
+                <div className="text-center text-xs text-gray-400 mt-8">
+                    <p>Demo Admin Login: admin@gymflow.com / admin123</p>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MobileLoginPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <MobileLoginContent />
+        </Suspense>
     );
 }

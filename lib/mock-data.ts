@@ -14,6 +14,8 @@ export interface Member {
     segment: 'Elite' | 'At-Risk' | 'Social' | 'Early Bird' | 'PT Ready' | 'Regular';
     avatar?: string;
     totalRevenue: number;
+    approved?: boolean;
+    status?: string; // Active, Pending, Rejected
 }
 
 export interface ChurnAlert {

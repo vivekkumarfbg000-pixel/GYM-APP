@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Activity, User, Dumbbell } from 'lucide-react';
+import { Home, Activity, User, Dumbbell, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MemberLayout({
@@ -71,12 +71,12 @@ export default function MemberLayout({
                     </Link>
 
                     <Link
-                        href="/mobile/dashboard" // Placeholder for Profile
-                        className={`flex flex-col items-center justify-center space-y-1 ${pathname === '/mobile/profile' ? 'text-blue-600' : 'text-gray-500'
+                        href="/mobile/community"
+                        className={`flex flex-col items-center justify-center space-y-1 ${pathname === '/mobile/community' ? 'text-blue-600' : 'text-gray-500'
                             }`}
                     >
-                        <User size={24} />
-                        <span className="text-xs">Profile</span>
+                        <Users size={24} /> // Using Users icon from lucide-react (ensure import)
+                        <span className="text-xs">Community</span>
                     </Link>
                 </div>
             </nav>

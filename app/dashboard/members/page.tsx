@@ -25,6 +25,27 @@ export default function MembersPage() {
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [viewMode, setViewMode] = useState<'active' | 'pending'>('active');
+
+    const handleApproveMember = async (memberId: string, action: 'approve' | 'reject') => {
+        try {
+            const res = await fetch('/api/members/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId, action })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success(`Member ${action}ed successfully`);
+                loadMembers();
+            } else {
+                toast.error('Action failed');
+            }
+        } catch (error) {
+            toast.error('Error processing request');
+        }
+    };
 
     // Form state for adding/editing member
     const [formData, setFormData] = useState<Partial<Member>>({
@@ -70,7 +91,9 @@ export default function MembersPage() {
                 checkInFrequency: m.check_in_frequency,
                 lastCheckIn: m.last_check_in,
                 totalRevenue: m.total_revenue,
-                ptSessions: m.pt_sessions
+                ptSessions: m.pt_sessions,
+                approved: m.approved,
+                status: m.status
             }));
 
             setMembers(mappedMembers);
@@ -176,7 +199,18 @@ export default function MembersPage() {
         const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             member.email.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesSegment = segmentFilter === 'all' || member.segment === segmentFilter;
-        return matchesSearch && matchesSegment;
+
+        // View Mode Filter
+        const isPending = member.status === 'Pending' || member.approved === false;
+
+        // If viewMode is 'active', show verified members. If 'pending', show unverified.
+        // However, we must handle legacy data where approved might be null/undefined -> treat as active for legacy
+        // But for NEW logic, false = pending.
+        const isActive = member.approved === true || (member.approved === undefined && member.status !== 'Pending');
+
+        const matchesView = viewMode === 'active' ? isActive : !isActive;
+
+        return matchesSearch && matchesSegment && matchesView;
     });
 
     if (loading && members.length === 0) {
@@ -266,6 +300,27 @@ export default function MembersPage() {
                         </div>
                     </DialogContent>
                 </Dialog>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+                <button
+                    onClick={() => setViewMode('active')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'active' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Active Members
+                </button>
+                <button
+                    onClick={() => setViewMode('pending')}
+                    className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'pending' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                    Pending Approvals
+                    {members.filter(m => m.approved === false || m.status === 'Pending').length > 0 && (
+                        <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                            {members.filter(m => m.approved === false || m.status === 'Pending').length}
+                        </span>
+                    )}
+                </button>
             </div>
 
             {/* Filters */}
@@ -374,21 +429,43 @@ export default function MembersPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => setSelectedMember(member)}
-                                                    >
-                                                        View
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="text-red-600 hover:text-red-700"
-                                                        onClick={() => handleDeleteMember(member.id, member.name)}
-                                                    >
-                                                        Delete
-                                                    </Button>
+                                                    {viewMode === 'pending' ? (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                className="bg-green-600 hover:bg-green-700 text-white"
+                                                                onClick={(e) => { e.stopPropagation(); handleApproveMember(member.id, 'approve'); }}
+                                                            >
+                                                                Approve
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                                                onClick={(e) => { e.stopPropagation(); handleApproveMember(member.id, 'reject'); }}
+                                                            >
+                                                                Reject
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => setSelectedMember(member)}
+                                                            >
+                                                                View
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="text-red-600 hover:text-red-700"
+                                                                onClick={() => handleDeleteMember(member.id, member.name)}
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +16,27 @@ import { UtilizationHeatmap } from '@/components/dashboard/utilization-heatmap';
 
 export default function DashboardPage() {
     const highRiskAlerts = mockChurnAlerts.filter(a => a.riskScore > 75);
-    const mediumRiskAlerts = mockChurnAlerts.filter(a => a.riskScore >= 60 && a.riskScore <= 75);
+    const [metrics, setMetrics] = useState(mockRevenueMetrics);
+
+    useEffect(() => {
+        const loadRealMetrics = async () => {
+            try {
+                const res = await fetch('/api/dashboard/metrics');
+                const data = await res.json();
+                if (data.mrr !== undefined) {
+                    // Merge real data with mock fallbacks
+                    setMetrics(prev => ({
+                        ...prev,
+                        mrr: data.mrr,
+                        activeMembers: data.activeMembers,
+                        churnRate: data.churnRate || prev.churnRate,
+                        avgLTV: Number(data.avgLTV) || prev.avgLTV
+                    }));
+                }
+            } catch (e) { console.error('Failed to load metrics', e); }
+        };
+        loadRealMetrics();
+    }, []);
 
     return (
         <div className="space-y-8">
@@ -45,28 +66,28 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard
                     title="Monthly Recurring Revenue"
-                    value={`₹${(mockRevenueMetrics.mrr / 1000).toFixed(0)}K`}
+                    value={`₹${(metrics.mrr / 1000).toFixed(0)}K`}
                     change="+12.5%"
                     positive
                     icon="💰"
                 />
                 <MetricCard
                     title="Churn Rate"
-                    value={`${mockRevenueMetrics.churnRate}%`}
+                    value={`${metrics.churnRate}%`}
                     change="-2.3%"
                     positive
                     icon="📉"
                 />
                 <MetricCard
                     title="Active Members"
-                    value={mockRevenueMetrics.activeMembers.toString()}
-                    change={`+${mockRevenueMetrics.newMembersThisMonth} this month`}
+                    value={metrics.activeMembers.toString()}
+                    change={`+${metrics.newMembersThisMonth} this month`}
                     positive
                     icon="👥"
                 />
                 <MetricCard
                     title="Avg Lifetime Value"
-                    value={`₹${(mockRevenueMetrics.avgLTV / 1000).toFixed(0)}K`}
+                    value={`₹${(metrics.avgLTV / 1000).toFixed(0)}K`}
                     change="+8.7%"
                     positive
                     icon="💎"
