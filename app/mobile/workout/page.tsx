@@ -119,7 +119,7 @@ export default function WorkoutTrackingPage() {
                     }
                 },
                 (err) => toast.error('GPS Lost: ' + err.message),
-                { enableHighAccuracy: true, distanceFilter: 5 }
+                { enableHighAccuracy: true }
             );
         }
     };
