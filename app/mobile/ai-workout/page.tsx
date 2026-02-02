@@ -1,0 +1,149 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Dumbbell, Clock, Flame, ChevronLeft, RefreshCw, CheckCircle, Zap } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function AIWorkoutPage() {
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
+    const [workout, setWorkout] = useState<any>(null);
+
+    const generateWorkout = async () => {
+        setLoading(true);
+        // Simulate AI generation delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Hardcoded Intelligence (Simulation Mode)
+        // in real app, fetch from API similar to Diet Coach
+        const newWorkout = {
+            title: "Full Body Power",
+            duration: 45,
+            calories: 320,
+            focus: "Strength & Conditioning",
+            exercises: [
+                { name: "Push Ups", sets: 3, reps: "12-15", rest: "60s" },
+                { name: "Dumbbell Squats", sets: 4, reps: "10-12", rest: "90s" },
+                { name: "Plank Hold", sets: 3, reps: "45s", rest: "60s" },
+                { name: "Mountain Climbers", sets: 3, reps: "30s", rest: "60s" },
+                { name: "Lunges", sets: 3, reps: "10/leg", rest: "60s" }
+            ]
+        };
+
+        setWorkout(newWorkout);
+        setLoading(false);
+        toast.success('Workout Generated!');
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            {/* Header */}
+            <div className="bg-white px-4 py-4 shadow-sm border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => router.back()} className="text-gray-500 hover:bg-gray-100 p-1 rounded-full">
+                        <ChevronLeft size={24} />
+                    </button>
+                    <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600">
+                        <Dumbbell size={20} />
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-gray-800">AI Instructor</h1>
+                        <p className="text-xs text-purple-600 font-medium">Personalized Plan</p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-6 flex-1 overflow-y-auto pb-24">
+                {!workout ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-6 mt-12">
+                        <div className="h-32 w-32 bg-purple-50 rounded-full flex items-center justify-center relative">
+                            <Zap size={64} className="text-purple-600" />
+                            <div className="absolute inset-0 border-4 border-purple-100 rounded-full animate-ping opacity-20"></div>
+                        </div>
+
+                        <div className="space-y-2 max-w-xs">
+                            <h2 className="text-2xl font-bold text-gray-900">Ready to train?</h2>
+                            <p className="text-gray-500">I'll build a custom workout for you based on your goal: <strong>Weight Loss</strong></p>
+                        </div>
+
+                        <button
+                            onClick={generateWorkout}
+                            disabled={loading}
+                            className="w-full max-w-xs bg-purple-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-purple-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <RefreshCw className="animate-spin" /> Generating...
+                                </>
+                            ) : (
+                                <>
+                                    <SparklesIcon /> Generate Workout
+                                </>
+                            )}
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                        {/* Summary Card */}
+                        <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-[2rem] p-6 text-white shadow-xl shadow-purple-200 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+
+                            <h2 className="text-2xl font-bold mb-1">{workout.title}</h2>
+                            <p className="text-purple-100 text-sm mb-6">{workout.focus}</p>
+
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2">
+                                    <Clock size={18} className="text-purple-200" />
+                                    <span className="font-semibold">{workout.duration} min</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Flame size={18} className="text-purple-200" />
+                                    <span className="font-semibold">{workout.calories} kcal</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Exercise List */}
+                        <div className="space-y-4">
+                            <h3 className="font-bold text-gray-800 ml-1">Exercises ({workout.exercises.length})</h3>
+
+                            {workout.exercises.map((ex: any, i: number) => (
+                                <div key={i} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center gap-4 shadow-sm">
+                                    <div className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center font-bold text-gray-400">
+                                        {i + 1}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-bold text-gray-900">{ex.name}</h4>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {ex.sets} sets × <span className="text-purple-600 font-medium">{ex.reps}</span>
+                                        </p>
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+                                        Rest: {ex.rest}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-2"
+                            onClick={() => {
+                                toast.success('Workout Logged!');
+                                setWorkout(null);
+                            }}
+                        >
+                            <CheckCircle size={20} /> Mark Complete
+                        </button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+const SparklesIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L14.4 7.2L20 9.6L14.4 12L12 17.2L9.6 12L4 9.6L9.6 7.2L12 2Z" fill="currentColor" />
+    </svg>
+);

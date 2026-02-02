@@ -73,6 +73,60 @@ export default function DashboardPage() {
                 />
             </div>
 
+            {/* Mobile App Impact Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-indigo-600 to-blue-600 text-white border-none shadow-xl relative overflow-hidden">
+                    <div className="absolute right-0 top-0 h-32 w-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                    <CardHeader className="pb-2 relative z-10">
+                        <CardTitle className="text-lg flex items-center gap-2 font-medium opacity-90">
+                            <span>📱</span> Mobile Adoption
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="relative z-10">
+                        <div className="flex items-baseline gap-2">
+                            <div className="text-4xl font-bold">24%</div>
+                            <span className="text-indigo-100 text-sm">of members</span>
+                        </div>
+                        <p className="text-indigo-100 text-xs mt-1">12 Active Users</p>
+                        <div className="mt-4">
+                            <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm">
+                                +3 joined today
+                            </Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-green-100 bg-green-50/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg text-gray-700 flex items-center gap-2">
+                            <span>🏃</span> GPS Activity
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold text-gray-900 mb-1">48</div>
+                        <p className="text-gray-500 text-sm">workouts tracked this week</p>
+                        <div className="mt-4 w-full bg-gray-100 rounded-full h-1.5">
+                            <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '70%' }}></div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-purple-100 bg-purple-50/50">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg text-gray-700 flex items-center gap-2">
+                            <span>🥗</span> AI Diet Coach
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-4xl font-bold text-gray-900 mb-1">156</div>
+                        <p className="text-gray-500 text-sm">queries answered</p>
+                        <div className="mt-4 w-full bg-gray-100 rounded-full h-1.5">
+                            <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: '45%' }}></div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* AI Features Quick Access */}
             <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
                 <CardHeader>
