@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Play, TrendingUp, Calendar, Zap, MapPin, ChevronRight, Activity, CreditCard, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Play, TrendingUp, Calendar, Zap, MapPin, ChevronRight, Activity, CreditCard, CheckCircle, AlertCircle, X, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -125,156 +125,164 @@ export default function MobileDashboard() {
     }
 
     return (
-        <div className="bg-gray-50 min-h-screen pb-24 relative animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="bg-blue-600 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-blue-200">
-                <div className="flex justify-between items-center mb-6">
+        <div className="bg-gray-50 min-h-screen pb-24 relative animate-in fade-in duration-500 font-sans">
+            {/* Header / Hero Section */}
+            <div className="bg-gradient-to-br from-blue-700 via-indigo-600 to-purple-700 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-indigo-200">
+                <div className="flex justify-between items-center mb-8">
                     <div>
-                        <p className="text-blue-100 text-sm font-medium mb-1">Welcome back,</p>
-                        <h1 className="text-2xl font-bold text-white tracking-tight">{name}</h1>
+                        <p className="text-blue-100 text-sm font-medium mb-1 tracking-wide">Good Morning,</p>
+                        <h1 className="text-3xl font-bold text-white tracking-tight">{name.split(' ')[0]}</h1>
                     </div>
-                    <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30">
-                        {name.charAt(0)}
+                    <div className="h-11 w-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-inner">
+                        <span className="font-bold text-lg">{name.charAt(0)}</span>
                     </div>
                 </div>
 
                 {/* Streak Card */}
-                <div className="mb-8">
+                <div className="mb-8 transform hover:scale-[1.02] transition-transform duration-300">
                     <StreakCard streak={streakData.streak} lastCheckIn={streakData.lastCheckIn} />
                 </div>
 
-                {/* Stats Row */}
-                <div className="flex justify-between text-center">
-                    <div className="bg-blue-700/30 p-3 rounded-2xl w-[30%] backdrop-blur-sm border border-blue-500/30">
-                        <p className="text-xl font-bold text-white">{stats.workouts}</p>
-                        <p className="text-[10px] text-blue-100 uppercase tracking-wide font-medium">Workouts</p>
-                    </div>
-                    <div className="bg-blue-700/30 p-3 rounded-2xl w-[30%] backdrop-blur-sm border border-blue-500/30">
-                        <p className="text-xl font-bold text-white">{(stats.distance / 1000).toFixed(1)}</p>
-                        <p className="text-[10px] text-blue-100 uppercase tracking-wide font-medium">km Run</p>
-                    </div>
-                    <div className="bg-blue-700/30 p-3 rounded-2xl w-[30%] backdrop-blur-sm border border-blue-500/30">
-                        <p className="text-xl font-bold text-white">{stats.calories.toFixed(0)}</p>
-                        <p className="text-[10px] text-blue-100 uppercase tracking-wide font-medium">Kcal</p>
-                    </div>
+                {/* Glass Stats Row */}
+                <div className="flex justify-between text-center gap-3">
+                    <StatBox value={stats.workouts} label="Workouts" />
+                    <StatBox value={(stats.distance / 1000).toFixed(1)} label="Km Run" />
+                    <StatBox value={stats.calories.toFixed(0)} label="Kcal Burn" />
                 </div>
             </div>
 
-            {/* Membership Card (Overlay) */}
-            <div className="px-6 -mt-16 relative z-10 space-y-4">
-                {/* Membership Status */}
+            {/* Content Container (Overlapping Hero) */}
+            <div className="px-5 -mt-16 relative z-10 space-y-6">
+
+                {/* Membership Status Card */}
                 {memberData && (
-                    <div className={`rounded-2xl shadow-lg p-5 flex items-center justify-between text-white ${isMembershipActive ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-red-500 to-orange-500'}`}>
-                        <div>
-                            <p className="text-xs font-medium opacity-90 uppercase tracking-wider mb-1">Membership Status</p>
+                    <div className={`rounded-2xl shadow-lg p-5 flex items-center justify-between text-white relative overflow-hidden ${isMembershipActive ? 'bg-gradient-to-r from-emerald-500 to-teal-600' : 'bg-gradient-to-r from-red-500 to-orange-500'}`}>
+                        {/* Background Deco */}
+                        <div className="absolute right-0 top-0 h-32 w-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+
+                        <div className="relative z-10">
+                            <p className="text-[10px] font-bold opacity-90 uppercase tracking-widest mb-1">Status</p>
                             <h3 className="font-bold text-lg flex items-center gap-2">
                                 {isMembershipActive ? (
-                                    <><CheckCircle size={20} /> Active</>
+                                    <><CheckCircle size={20} /> Active Member</>
                                 ) : (
-                                    <><AlertCircle size={20} /> Payment Due</>
+                                    <><AlertCircle size={20} /> Membership Expired</>
                                 )}
                             </h3>
-                            <p className="text-xs mt-2 opacity-80">
+                            <p className="text-xs mt-2 opacity-90 font-medium">
                                 {isMembershipActive
-                                    ? `Next billing: ${nextBillDate}`
-                                    : 'Your subscription has expired.'
+                                    ? `Renews: ${nextBillDate}`
+                                    : 'Access restricted. Renew now.'
                                 }
                             </p>
                         </div>
+
                         {!isMembershipActive && (
                             <Button
                                 onClick={() => setShowPayModal(true)}
-                                className="bg-white/20 hover:bg-white/30 text-white border border-white/40 shadow-sm backdrop-blur-sm rounded-xl"
+                                className="bg-white text-red-600 hover:bg-gray-100 border-none shadow-md rounded-xl font-bold relative z-10"
+                                size="sm"
                             >
-                                Pay Now
+                                Renew
                             </Button>
                         )}
                         {isMembershipActive && (
-                            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
+                            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center relative z-10">
                                 <CreditCard size={20} />
                             </div>
                         )}
                     </div>
                 )}
 
-                {/* Quick Actions Card */}
-                <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 p-5">
-                    <h2 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wide">Quick Actions</h2>
+                {/* Quick Actions Grid */}
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                    <h2 className="font-bold text-gray-800 mb-5 text-sm uppercase tracking-wider flex items-center gap-2">
+                        <Zap size={16} className="text-yellow-500 fill-current" /> Quick Actions
+                    </h2>
                     <div className="grid grid-cols-2 gap-4">
-                        <Link href="/mobile/workout" className="bg-blue-50 p-4 rounded-xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border border-blue-100 hover:bg-blue-100 group">
-                            <div className="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
-                                <Play fill="currentColor" size={20} className="ml-1" />
-                            </div>
-                            <span className="font-semibold text-sm text-gray-700">Start Run</span>
-                        </Link>
-
-                        <Link href="/mobile/diet" className="bg-green-50 p-4 rounded-xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border border-green-100 hover:bg-green-100 group">
-                            <div className="h-12 w-12 bg-green-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-green-200 group-hover:scale-110 transition-transform">
-                                <Zap size={22} className="fill-current" />
-                            </div>
-                            <span className="font-semibold text-sm text-gray-700">Diet Coach</span>
-                        </Link>
-
-                        <Link href="/mobile/ai-workout" className="bg-purple-50 p-4 rounded-xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border border-purple-100 hover:bg-purple-100 group">
-                            <div className="h-12 w-12 bg-purple-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-purple-200 group-hover:scale-110 transition-transform">
-                                <Activity size={22} />
-                            </div>
-                            <span className="font-semibold text-sm text-gray-700">AI Trainer</span>
-                        </Link>
-
-                        <Link href="/mobile/community" className="bg-orange-50 p-4 rounded-xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border border-orange-100 hover:bg-orange-100 group">
-                            <div className="h-12 w-12 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-orange-200 group-hover:scale-110 transition-transform">
-                                <Users size={22} />
-                            </div>
-                            <span className="font-semibold text-sm text-gray-700">Community</span>
-                        </Link>
+                        <QuickActionLink
+                            href="/mobile/workout"
+                            icon={<Play className="ml-1 fill-current" size={24} />}
+                            title="Start Run"
+                            color="blue"
+                        />
+                        <QuickActionLink
+                            href="/mobile/diet"
+                            icon={<Zap size={24} className="fill-current" />}
+                            title="Diet Coach"
+                            color="green"
+                        />
+                        <QuickActionLink
+                            href="/mobile/ai-workout"
+                            icon={<Activity size={24} />}
+                            title="AI Trainer"
+                            color="purple"
+                        />
+                        <QuickActionLink
+                            href="/mobile/community"
+                            icon={<Users size={24} />}
+                            title="Community"
+                            color="orange"
+                        />
                     </div>
+                </div>
+
+                {/* Promotional Banner (Example) */}
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-4">
+                    <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                        <TrendingUp size={20} />
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-gray-900 text-sm">Join the 'Summer Shred'</h4>
+                        <p className="text-xs text-blue-600 font-medium">Win prizes worth ₹50,000!</p>
+                    </div>
+                    <ChevronRight className="ml-auto text-blue-400" size={20} />
                 </div>
             </div>
 
             {/* Payment Modal */}
             {showPayModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl relative">
+                    <div className="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl relative">
                         <button
                             onClick={() => setShowPayModal(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2"
                         >
                             <X size={24} />
                         </button>
 
-                        <div className="text-center mb-6">
-                            <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4">
+                        <div className="text-center mb-8 mt-2">
+                            <div className="h-20 w-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4 border-4 border-blue-100">
                                 <CreditCard size={32} />
                             </div>
-                            <h2 className="text-xl font-bold text-gray-900">Confirm Subscription</h2>
-                            <p className="text-gray-500 text-sm mt-1">Monthly Gym Membership</p>
+                            <h2 className="text-2xl font-bold text-gray-900">Confirm Plan</h2>
+                            <p className="text-gray-500 text-sm mt-1">Unlimited Gym Access</p>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-xl mb-6 border border-gray-100">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-gray-600 text-sm">Plan</span>
+                        <div className="bg-gray-50 p-5 rounded-2xl mb-8 border border-gray-100">
+                            <div className="flex justify-between mb-3">
+                                <span className="text-gray-500 text-sm">Plan</span>
                                 <span className="font-semibold text-gray-900">Standard Monthly</span>
                             </div>
-                            <div className="flex justify-between mb-2">
-                                <span className="text-gray-600 text-sm">Duration</span>
+                            <div className="flex justify-between mb-3">
+                                <span className="text-gray-500 text-sm">Duration</span>
                                 <span className="font-semibold text-gray-900">30 Days</span>
                             </div>
-                            <div className="border-t border-gray-200 my-2 pt-2 flex justify-between">
+                            <div className="border-t border-gray-200 my-3 pt-3 flex justify-between items-center">
                                 <span className="text-gray-900 font-bold">Total</span>
-                                <span className="text-blue-600 font-bold text-lg">₹2,999</span>
+                                <span className="text-blue-600 font-bold text-2xl">₹2,999</span>
                             </div>
                         </div>
 
                         <Button
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl font-bold text-lg shadow-lg shadow-blue-200"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 rounded-2xl font-bold text-lg shadow-xl shadow-blue-200 active:scale-95 transition-all"
                             onClick={handleProcessPayment}
                             disabled={processing}
                         >
-                            {processing ? 'Processing...' : 'Pay with Pay'}
+                            {processing ? 'Processing...' : 'Pay Now'}
                         </Button>
-                        <p className="text-xs text-center text-gray-400 mt-4 flex items-center justify-center gap-1">
-                            <Zap size={10} /> Powered by Stripe (Test Mode)
+                        <p className="text-[10px] text-center text-gray-400 mt-5 flex items-center justify-center gap-1 uppercase tracking-wide">
+                            <Zap size={10} className="fill-current" /> Secure Payment via Stripe
                         </p>
                     </div>
                 </div>
@@ -283,5 +291,31 @@ export default function MobileDashboard() {
     );
 }
 
-// Importing Users icon separately to ensure it works
-import { Users } from 'lucide-react';
+// --- Components ---
+
+function StatBox({ value, label }: { value: string | number, label: string }) {
+    return (
+        <div className="bg-white/10 p-3 rounded-2xl w-[32%] backdrop-blur-md border border-white/20 shadow-lg">
+            <p className="text-2xl font-bold text-white tracking-tight">{value}</p>
+            <p className="text-[10px] text-blue-100 uppercase tracking-wider font-bold mt-1 opacity-80">{label}</p>
+        </div>
+    );
+}
+
+function QuickActionLink({ href, icon, title, color }: any) {
+    const colorStyles: any = {
+        blue: "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100",
+        green: "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100",
+        purple: "bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100",
+        orange: "bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100",
+    };
+
+    return (
+        <Link href={href} className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all border ${colorStyles[color]} group`}>
+            <div className={`h-12 w-12 rounded-full flex items-center justify-center shadow-md bg-white group-hover:scale-110 transition-transform`}>
+                {icon}
+            </div>
+            <span className="font-bold text-sm text-gray-700">{title}</span>
+        </Link>
+    );
+}
