@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Megaphone, Users, Calendar, BarChart3, Settings, Dumbbell } from 'lucide-react';
+import { Sparkles, Megaphone, Users, Calendar, BarChart3, Settings, Dumbbell, DollarSign } from 'lucide-react';
 
 type Tab = 'suggested' | 'campaigns' | 'manage';
 
@@ -61,6 +61,12 @@ export function SmartCommandCenter() {
                 onClick: () => router.push('/dashboard/schedule')
             },
             {
+                label: 'Approve Payments',
+                icon: <DollarSign className="h-5 w-5 text-gray-700" />,
+                desc: 'Verify manual UPI',
+                onClick: () => router.push('/dashboard/payments')
+            },
+            {
                 label: 'Equipment Log',
                 icon: <Dumbbell className="h-5 w-5 text-gray-700" />,
                 desc: 'Track maintenance',
@@ -89,8 +95,8 @@ export function SmartCommandCenter() {
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all capitalize ${activeTab === tab
-                                    ? 'bg-white text-blue-600 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
                                 }`}
                         >
                             {tab}

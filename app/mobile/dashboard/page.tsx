@@ -19,6 +19,8 @@ export default function MobileDashboard() {
     const [showPayModal, setShowPayModal] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [streakData, setStreakData] = useState({ streak: 0, lastCheckIn: '' });
+    const [paymentMode, setPaymentMode] = useState<'card' | 'upi'>('card');
+    const [utr, setUtr] = useState('');
 
     const router = useRouter();
 
@@ -99,14 +101,20 @@ export default function MobileDashboard() {
                 body: JSON.stringify({
                     memberId,
                     amount: 2999,
-                    paymentMethod: 'card'
+                    paymentMethod: paymentMode === 'card' ? 'card' : 'upi_manual',
+                    transactionId: paymentMode === 'upi' ? utr : undefined
                 })
             });
             const data = await res.json();
 
             if (data.success) {
-                toast.success('Payment Successful!');
+                if (paymentMode === 'upi') {
+                    toast.success('Payment submitted for verification!');
+                } else {
+                    toast.success('Payment Successful!');
+                }
                 setShowPayModal(false);
+                setUtr('');
                 if (memberId) loadDashboardData(memberId); // Refresh status
             } else {
                 toast.error('Payment failed: ' + data.error);
@@ -242,8 +250,8 @@ export default function MobileDashboard() {
 
             {/* Payment Modal */}
             {showPayModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl relative">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl relative animate-in slide-in-from-bottom-10">
                         <button
                             onClick={() => setShowPayModal(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2"
@@ -251,39 +259,91 @@ export default function MobileDashboard() {
                             <X size={24} />
                         </button>
 
-                        <div className="text-center mb-8 mt-2">
-                            <div className="h-20 w-20 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4 border-4 border-blue-100">
-                                <CreditCard size={32} />
+                        <div className="text-center mb-6 mt-2">
+                            <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-3 border-4 border-blue-100">
+                                <CreditCard size={28} />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900">Confirm Plan</h2>
-                            <p className="text-gray-500 text-sm mt-1">Unlimited Gym Access</p>
+                            <h2 className="text-xl font-bold text-gray-900">Upgrade Membership</h2>
+                            <p className="text-gray-500 text-sm">Unlimited Access • All Features</p>
                         </div>
 
-                        <div className="bg-gray-50 p-5 rounded-2xl mb-8 border border-gray-100">
-                            <div className="flex justify-between mb-3">
-                                <span className="text-gray-500 text-sm">Plan</span>
-                                <span className="font-semibold text-gray-900">Standard Monthly</span>
-                            </div>
-                            <div className="flex justify-between mb-3">
-                                <span className="text-gray-500 text-sm">Duration</span>
-                                <span className="font-semibold text-gray-900">30 Days</span>
-                            </div>
-                            <div className="border-t border-gray-200 my-3 pt-3 flex justify-between items-center">
-                                <span className="text-gray-900 font-bold">Total</span>
-                                <span className="text-blue-600 font-bold text-2xl">₹2,999</span>
-                            </div>
+                        {/* Payment Method Tabs */}
+                        <div className="flex p-1 bg-gray-100 rounded-xl mb-6">
+                            <button
+                                onClick={() => setPaymentMode('card')}
+                                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${paymentMode === 'card' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                            >
+                                Card
+                            </button>
+                            <button
+                                onClick={() => setPaymentMode('upi')}
+                                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${paymentMode === 'upi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                            >
+                                UPI QR
+                            </button>
                         </div>
 
-                        <Button
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 rounded-2xl font-bold text-lg shadow-xl shadow-blue-200 active:scale-95 transition-all"
-                            onClick={handleProcessPayment}
-                            disabled={processing}
-                        >
-                            {processing ? 'Processing...' : 'Pay Now'}
-                        </Button>
-                        <p className="text-[10px] text-center text-gray-400 mt-5 flex items-center justify-center gap-1 uppercase tracking-wide">
-                            <Zap size={10} className="fill-current" /> Secure Payment via Stripe
-                        </p>
+                        {paymentMode === 'card' ? (
+                            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+                                <div className="bg-gray-50 p-5 rounded-2xl mb-6 border border-gray-200">
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-gray-500 text-sm">Amount</span>
+                                        <span className="font-bold text-gray-900">₹2,999</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-gray-400">
+                                        <span>Secure via Stripe</span>
+                                        <span>Encrypted</span>
+                                    </div>
+                                </div>
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl font-bold text-base shadow-lg shadow-blue-200 active:scale-95 transition-all"
+                                    onClick={handleProcessPayment}
+                                    disabled={processing}
+                                >
+                                    {processing ? 'Processing...' : 'Pay with Card'}
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-4">
+                                <div className="bg-gradient-to-br from-indigo-600 to-purple-600 p-6 rounded-2xl text-white text-center shadow-lg relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
+
+                                    <p className="text-xs font-medium text-indigo-100 mb-2 uppercase tracking-wide">Scan to Pay</p>
+                                    <div className="bg-white p-2 rounded-xl w-40 h-40 mx-auto shadow-inner flex items-center justify-center">
+                                        {/* Dynamic QR: Generates a UPI generic QR for demo. In prod, use specific VPA */}
+                                        {/* Using a placeholder service for visual demo */}
+                                        <img
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=gymflow@upi&pn=GymFlow&am=2999&cu=INR`}
+                                            alt="UPI QR"
+                                            className="w-full h-full object-contain"
+                                        />
+                                    </div>
+                                    <p className="font-bold text-xl mt-3">₹2,999</p>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 ml-1 uppercase mb-1 block">Transaction ID (UTR)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter 12-digit UTR sent by bank"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 transition-all"
+                                        value={utr}
+                                        onChange={(e) => setUtr(e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1.5 ml-1">
+                                        *Payment will be active after admin verification (approx 10m).
+                                    </p>
+                                </div>
+
+                                <Button
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 rounded-xl font-bold text-base shadow-lg shadow-indigo-200 active:scale-95 transition-all"
+                                    onClick={handleProcessPayment}
+                                    disabled={processing || !utr}
+                                >
+                                    {processing ? 'Verifying...' : 'Submit Payment'}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
