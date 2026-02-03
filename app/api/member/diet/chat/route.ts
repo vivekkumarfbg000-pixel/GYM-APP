@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Simulation Mode Brain (Fallback when no API key)
 function getSimulatedResponse(message: string): string {
@@ -25,58 +26,45 @@ function getSimulatedResponse(message: string): string {
     }
 
     // Default
-    return "That's a great question about nutrition! 🥗\n\nSince I'm in **Demo Mode**, I can best answer about:\n- Protein sources\n- Weight loss tips\n- Muscle gain\n- Indian food hacks\n\n(To get full AI answers for ANY question, please add your OpenAI API key in settings!)";
+    return "That's a great question about nutrition! 🥗\n\nI can help you with:\n- Protein sources\n- Weight loss tips\n- Muscle gain strategies\n- Indian food recommendations\n\nJust ask me anything!";
 }
 
 export async function POST(request: Request) {
     try {
         const { message, memberId } = await request.json();
 
-        // 1. Check for OpenAI Key
-        const apiKey = process.env.OPENAI_API_KEY;
+        // 1. Check for Gemini API Key
+        const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
             // Use Smart Simulation
-            /* 
-               In a real app, you'd log this request to analytics 
-               so you know users are trying to use AI features.
-            */
             await new Promise(resolve => setTimeout(resolve, 1000)); // Fake network delay for realism
             const reply = getSimulatedResponse(message);
             return NextResponse.json({ success: true, reply, mode: 'simulation' });
         }
 
-        // 2. Call OpenAI (If key exists)
+        // 2. Call Gemini AI
         try {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo', // Or gpt-4
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are an expert fitness nutritionist for GymFlow AI. Answer briefly (under 100 words). Use emojis. Focus on Indian context if relevant. Be motivating."
-                        },
-                        {
-                            role: "user",
-                            content: message
-                        }
-                    ],
-                    max_tokens: 200
-                })
-            });
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-            const data = await response.json();
-            const reply = data.choices[0].message.content;
+            const systemPrompt = `You are an expert fitness nutritionist for GymFlow AI, helping Indian gym members.
+- Answer in under 100 words
+- Use friendly emojis
+- Focus on Indian context (dal, roti, paneer, etc.)
+- Be motivating and practical
+- Use bullet points for clarity`;
 
-            return NextResponse.json({ success: true, reply, mode: 'openai' });
+            const prompt = `${systemPrompt}\n\nUser Question: ${message}`;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const reply = response.text();
+
+            return NextResponse.json({ success: true, reply, mode: 'gemini' });
 
         } catch (apiError) {
-            console.error('OpenAI API Error:', apiError);
+            console.error('Gemini API Error:', apiError);
             // Fallback to simulation if API fails
             return NextResponse.json({
                 success: true,
