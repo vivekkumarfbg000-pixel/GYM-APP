@@ -34,7 +34,7 @@ export default function MemberLayout({
     if (!isAuthenticated) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50 pb-20 theme-member">
             {/* Main Content */}
             <main className="max-w-md mx-auto min-h-screen bg-white shadow-lg overflow-hidden relative">
                 {children}

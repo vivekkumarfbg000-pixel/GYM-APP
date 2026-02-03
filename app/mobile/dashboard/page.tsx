@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { MobileDashboardSkeleton } from '@/components/shared/skeleton-loaders';
 
+import { StreakCard } from '@/components/mobile/streak-card';
+
 export default function MobileDashboard() {
     const [name, setName] = useState('');
     const [stats, setStats] = useState({ workouts: 0, distance: 0, calories: 0 });
@@ -16,6 +18,7 @@ export default function MobileDashboard() {
     const [loading, setLoading] = useState(true);
     const [showPayModal, setShowPayModal] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [streakData, setStreakData] = useState({ streak: 0, lastCheckIn: '' });
 
     const router = useRouter();
 
@@ -30,7 +33,26 @@ export default function MobileDashboard() {
 
         setName(memberName || 'Member');
         loadDashboardData(memberId);
+        handleCheckIn(memberId);
     }, [router]);
+
+    const handleCheckIn = async (memberId: string) => {
+        try {
+            const res = await fetch('/api/member/check-in', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ memberId })
+            });
+            const data = await res.json();
+            if (data.success && data.firstCheckIn) {
+                toast.success(`Daily Check-in! +${data.pointsAdded} Points 🔥`);
+                // Update local state for immediate feedback
+                setStreakData(prev => ({ ...prev, streak: data.streak, lastCheckIn: new Date().toISOString().split('T')[0] }));
+            }
+        } catch (error) {
+            console.error('Check-in failed', error);
+        }
+    };
 
     const loadDashboardData = async (memberId: string) => {
         try {
@@ -39,6 +61,11 @@ export default function MobileDashboard() {
             const profileData = await profileRes.json();
             if (profileData.success) {
                 setMemberData(profileData.data);
+                // Set initial streak data from profile
+                setStreakData({
+                    streak: profileData.data.daily_streak || 0,
+                    lastCheckIn: profileData.data.last_streak_date || ''
+                });
             }
 
             // 2. Fetch Workouts
@@ -101,7 +128,7 @@ export default function MobileDashboard() {
         <div className="bg-gray-50 min-h-screen pb-24 relative animate-in fade-in duration-500">
             {/* Header */}
             <div className="bg-blue-600 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-blue-200">
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-6">
                     <div>
                         <p className="text-blue-100 text-sm font-medium mb-1">Welcome back,</p>
                         <h1 className="text-2xl font-bold text-white tracking-tight">{name}</h1>
@@ -109,6 +136,11 @@ export default function MobileDashboard() {
                     <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30">
                         {name.charAt(0)}
                     </div>
+                </div>
+
+                {/* Streak Card */}
+                <div className="mb-8">
+                    <StreakCard streak={streakData.streak} lastCheckIn={streakData.lastCheckIn} />
                 </div>
 
                 {/* Stats Row */}

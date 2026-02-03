@@ -36,7 +36,9 @@ CREATE TABLE IF NOT EXISTS public.challenge_participants (
 -- 4. Update Members for Gamification
 ALTER TABLE public.members 
 ADD COLUMN IF NOT EXISTS points INT DEFAULT 0,
-ADD COLUMN IF NOT EXISTS level INT DEFAULT 1;
+ADD COLUMN IF NOT EXISTS level INT DEFAULT 1,
+ADD COLUMN IF NOT EXISTS daily_streak INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS last_streak_date DATE;
 
 -- Seed some challenges (Use Insert if not exists roughly)
 INSERT INTO public.challenges (title, description, goal_type, goal_target, start_date, end_date)
