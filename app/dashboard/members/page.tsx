@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MessageCircle, Bell, Gift, Link as LinkIcon } from 'lucide-react';
 import { type Member } from '@/lib/mock-data';
 import { exportMembersToCSV } from '@/lib/export-utils';
 import { LoadingState, TableSkeleton } from '@/components/shared/loading-state';
@@ -398,7 +400,10 @@ export default function MembersPage() {
                                         <TableRow key={member.id} className="cursor-pointer hover:bg-gray-50">
                                             <TableCell>
                                                 <div>
-                                                    <p className="font-medium">{member.name}</p>
+                                                    <p className="font-medium flex items-center gap-2">
+                                                        {member.name}
+                                                        <WhatsAppActions member={member} />
+                                                    </p>
                                                     <p className="text-sm text-gray-500">{member.email}</p>
                                                 </div>
                                             </TableCell>
@@ -579,5 +584,54 @@ function InfoItem({ label, value }: { label: string; value: string }) {
             <p className="text-sm text-gray-500">{label}</p>
             <p className="font-medium mt-1">{value}</p>
         </div>
+    );
+}
+
+function WhatsAppActions({ member }: { member: any }) {
+    const openWhatsApp = (type: 'payment' | 'reminder' | 'offer') => {
+        if (!member.phone) {
+            toast.error('No phone number for member');
+            return;
+        }
+
+        const phone = member.phone.replace(/\D/g, '');
+
+        let message = '';
+        if (type === 'payment') {
+            message = `Hi ${member.name}, here is your payment link for the ${member.membershipType} plan: https://gymflow.app/pay/${member.id}. Thanks!`;
+        } else if (type === 'reminder') {
+            message = `Hi ${member.name}, just a friendly reminder that your gym membership is due for renewal soon. Let us know if you need help! 🏋️‍♂️`;
+        } else if (type === 'offer') {
+            message = `Hey ${member.name}! 🎉 We have a special 20% discount on PT sessions just for you. Reply 'YES' to claim it!`;
+        }
+
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-full"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <MessageCircle size={16} />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openWhatsApp('payment'); }}>
+                    <LinkIcon className="mr-2 h-4 w-4" /> Send Payment Link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openWhatsApp('reminder'); }}>
+                    <Bell className="mr-2 h-4 w-4" /> Send Reminder
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openWhatsApp('offer'); }}>
+                    <Gift className="mr-2 h-4 w-4" /> Send Offer
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
