@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,14 +15,36 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const [error, setError] = useState<string | null>(null);
+    const supabase = createClientComponentClient();
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError(null);
 
-        // Simulate login for demo
-        setTimeout(() => {
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                console.error('Login error:', error);
+                setError(error.message);
+                toast.error("Login Failed: " + error.message);
+                return;
+            }
+
+            toast.success("Welcome back! Successfully logged in.");
+
             router.push('/dashboard');
-        }, 1000);
+            router.refresh();
+        } catch (err) {
+            setError('An unexpected error occurred');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

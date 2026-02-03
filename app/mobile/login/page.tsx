@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Smartphone, Lock, AlertCircle, Clock } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -23,31 +24,31 @@ function MobileLoginContent() {
         }
     }, [searchParams]);
 
+    const [error, setError] = useState<string | null>(null);
+    const supabase = createClientComponentClient();
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role: 'member' })
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
             });
 
-            const data = await res.json();
+            if (error) {
+                toast.error(error.message);
+                return;
+            }
 
-            if (data.success) {
-                // Success
+            if (data.user) {
+                // Keep localStorage for compatibility with existing hooks
                 localStorage.setItem('gymflow_member_id', data.user.id);
-                localStorage.setItem('gymflow_member_name', data.user.name);
-                toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`);
+                localStorage.setItem('gymflow_member_name', data.user.user_metadata?.name || 'Member');
+
+                toast.success(`Welcome back!`);
                 router.push('/mobile/dashboard');
-            } else {
-                if (res.status === 403) {
-                    setPendingApproval(true);
-                } else {
-                    toast.error(data.error || 'Login failed');
-                }
             }
         } catch (error) {
             console.error('Login error:', error);

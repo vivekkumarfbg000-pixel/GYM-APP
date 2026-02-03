@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/components/providers/auth-provider';
 
 const navigation = [
     { name: 'Revenue Intelligence', href: '/dashboard', icon: '📊' },
@@ -17,6 +18,7 @@ const navigation = [
     { name: 'ROI Calculator', href: '/dashboard/roi-calculator', icon: '💰' },
     { name: 'Trainers', href: '/dashboard/trainers', icon: '💪' },
     { name: 'Analytics', href: '/dashboard/analytics', icon: '📈' },
+    { name: 'Reports', href: '/dashboard/reports', icon: '📄' },
     { name: 'AI Trainer', href: '/dashboard/ai-trainer', icon: '🤖' },
     { name: 'Settings', href: '/dashboard/settings', icon: '⚙️' },
 ];
@@ -27,7 +29,17 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user, loading } = useAuth();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/login');
+        }
+    }, [user, loading, router]);
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
 
     return (
         <div className="min-h-screen bg-gray-50 theme-owner">
