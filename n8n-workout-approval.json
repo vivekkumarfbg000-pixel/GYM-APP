@@ -1,0 +1,153 @@
+{
+    "name": "GymFlow AI - Workout Approval",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "approve-workout",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "gymflow-approval-webhook"
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "message",
+                            "value": "={{$json.body.memberName}}, your new AI workout plan has been approved by your trainer! 🏋️‍♂️🔥"
+                        },
+                        {
+                            "name": "timestamp",
+                            "value": "={{new Date().toISOString()}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Format Notification",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "content": "## 🚀 Action Required\n\n1. Connect your **WhatsApp/Twilio** node here to send the notification.\n2. Connect your **Supabase** node here to update the database status to `approved`.",
+                "height": 200,
+                "width": 300
+            },
+            "name": "Instructions",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                380,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "name": "Mock Update DB",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                650,
+                200
+            ],
+            "notes": "Replace with Supabase Update"
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "name": "Mock Send Msg",
+            "type": "n8n-nodes-base.noOp",
+            "typeVersion": 1,
+            "position": [
+                650,
+                400
+            ],
+            "notes": "Replace with WhatsApp/SMS"
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "{\n  \"success\": true,\n  \"message\": \"Workflow triggered successfully\",\n  \"data\": {{$json}}\n}",
+                "options": {}
+            },
+            "name": "Respond to App",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Format Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Notification": {
+            "main": [
+                [
+                    {
+                        "node": "Mock Update DB",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Mock Send Msg",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mock Update DB": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to App",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mock Send Msg": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to App",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {},
+    "staticData": null,
+    "pinData": null
+}

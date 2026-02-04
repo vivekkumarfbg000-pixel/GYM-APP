@@ -609,3 +609,57 @@ export const upsellMetrics = {
     avgIncreasePerMember: 14000,
     projectedAnnualRevenue: upsellOpportunities.reduce((sum, u) => sum + u.annualIncrease, 0),
 };
+
+// AI Workout Oversight Data
+export interface PendingWorkout {
+    id: string;
+    memberId: string;
+    memberName: string;
+    memberAvatar?: string;
+    generatedDate: string;
+    goal: string;
+    duration: number;
+    exercises: number;
+    riskLevel: 'low' | 'medium' | 'high';
+    status: 'pending' | 'approved' | 'modified';
+    aiNotes: string;
+}
+
+export const mockPendingWorkouts: PendingWorkout[] = [
+    {
+        id: 'w1',
+        memberId: '2',
+        memberName: 'Priya Patel',
+        generatedDate: '2026-02-04T08:30:00',
+        goal: 'Weight Loss',
+        duration: 45,
+        exercises: 6,
+        riskLevel: 'medium',
+        status: 'pending',
+        aiNotes: 'Increased intensity by 15% based on last week\'s performance. Caution: Knee injury history.',
+    },
+    {
+        id: 'w2',
+        memberId: '4',
+        memberName: 'Sneha Reddy',
+        generatedDate: '2026-02-04T09:15:00',
+        goal: 'Strength',
+        duration: 60,
+        exercises: 8,
+        riskLevel: 'low',
+        status: 'pending',
+        aiNotes: 'Standard progressive overload. No constraints detected.',
+    },
+    {
+        id: 'w3',
+        memberId: '6',
+        memberName: 'Neha Gupta',
+        generatedDate: '2026-02-03T18:45:00',
+        goal: 'Cardio Endurance',
+        duration: 30,
+        exercises: 4,
+        riskLevel: 'high',
+        status: 'pending',
+        aiNotes: 'High heart rate target. Review recommended for erratic check-in pattern.',
+    },
+];
