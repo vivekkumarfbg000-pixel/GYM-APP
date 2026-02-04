@@ -51,18 +51,39 @@ export default function AchievementsPage() {
             const workoutsRes = await fetch(`/api/member/workouts?memberId=${memberId}`);
             const workoutsData = await workoutsRes.json();
 
+            // FETCH REAL BADGES
+            const badgesRes = await fetch(`/api/gamification/achievements?memberId=${memberId}`);
+            const badgesData = await badgesRes.json();
+            const unlockedIds = new Set(badgesData.success ? badgesData.data.map((b: any) => b.badge_id) : []);
+
             if (profileData.success && workoutsData.success) {
                 const p = profileData.data;
                 const totalWorkouts = workoutsData.data.length;
                 const totalDistance = workoutsData.data.reduce((acc: number, cur: any) => acc + (cur.distance_meters || 0), 0);
 
-                setStats({
+                // Calculate Stats
+                const currentStats = {
                     workouts: totalWorkouts,
                     distance: totalDistance,
-                    calories: 0, // Not tracking sum yet
+                    calories: 0,
                     streak: p.daily_streak || 0,
-                    checkins: (p.points / 10) || 0, // Approx from points if strictly checkin based, logic simplification
+                    checkins: (p.points / 10) || 0,
                     level: p.level || 1
+                };
+
+                setStats(currentStats);
+
+                // Sync Unlocks: If condition met but not in DB, unlock it!
+                ACHIEVEMENTS.forEach(async (achievement) => {
+                    if (achievement.condition(currentStats) && !unlockedIds.has(achievement.id)) {
+                        // Trigger Unlock API
+                        await fetch('/api/gamification/achievements', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ memberId, badgeId: achievement.id })
+                        });
+                        unlockedIds.add(achievement.id); // Optimistic update
+                    }
                 });
             }
         } catch (error) {
@@ -112,8 +133,8 @@ export default function AchievementsPage() {
                         <div
                             key={achievement.id}
                             className={`relative rounded-2xl p-5 border shadow-sm transition-all ${isUnlocked
-                                    ? 'bg-white border-yellow-100 shadow-yellow-100/50'
-                                    : 'bg-gray-100 border-gray-200 opacity-60 grayscale'
+                                ? 'bg-white border-yellow-100 shadow-yellow-100/50'
+                                : 'bg-gray-100 border-gray-200 opacity-60 grayscale'
                                 }`}
                         >
                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isUnlocked ? 'bg-gradient-to-br from-yellow-100 to-orange-100 text-orange-600' : 'bg-gray-200 text-gray-400'

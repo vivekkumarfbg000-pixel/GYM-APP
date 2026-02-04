@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Trophy, Users, Flame, Heart, MessageCircle, Share2, Award, ChevronRight, Send } from 'lucide-react';
+import { Trophy, Users, Flame, Heart, MessageCircle, Share2, Award, ChevronRight, Send, Bot } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { CommunityFeedSkeleton, LeaderboardSkeleton } from '@/components/shared/skeleton-loaders';
 
 export default function CommunityPage() {
-    const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenges'>('feed');
+    const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenges' | 'duels'>('feed');
     const [feed, setFeed] = useState<any[]>([]);
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [challenges, setChallenges] = useState<any[]>([]);
@@ -44,6 +44,11 @@ export default function CommunityPage() {
                 const data = await res.json();
                 if (Array.isArray(data)) setChallenges(data);
             }
+            if (activeTab === 'duels') {
+                const res = await fetch(`/api/gamification/duels?memberId=${mid || ''}`);
+                const data = await res.json();
+                if (data.success) setChallenges(data.data); // Reuse challenges state for duels list
+            }
         } catch (error) {
             console.error('Failed to load community data', error);
             toast.error('Failed to load data');
@@ -51,14 +56,14 @@ export default function CommunityPage() {
         setLoading(false);
     };
 
-    const handleCreatePost = async () => {
+    const handleCreatePost = async (imageUrl?: string) => {
         if (!postContent.trim() || !memberId) return;
         setPosting(true);
         try {
             const res = await fetch('/api/community/posts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ memberId, content: postContent })
+                body: JSON.stringify({ memberId, content: postContent, imageUrl, type: 'regular' })
             });
             if (res.ok) {
                 toast.success('Post shared!');
@@ -69,6 +74,56 @@ export default function CommunityPage() {
             toast.error('Failed to post');
         }
         setPosting(false);
+    };
+
+    const handleAiPost = async () => {
+        if (!memberId) return;
+        try {
+            toast.promise(
+                fetch('/api/ai/generate-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ triggerMemberId: memberId })
+                }).then(res => res.json()),
+                {
+                    loading: 'AI Coach is writing...',
+                    success: () => {
+                        loadData(memberId);
+                        return 'AI Motivation Posted!';
+                    },
+                    error: 'Failed to generate'
+                }
+            );
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleLike = async (postId: string) => {
+        if (!memberId) return;
+
+        // Optimistic update
+        setFeed(prev => prev.map(p => {
+            if (p.id === postId) {
+                return {
+                    ...p,
+                    isLiked: !p.isLiked,
+                    likes: p.isLiked ? p.likes - 1 : p.likes + 1
+                };
+            }
+            return p;
+        }));
+
+        try {
+            await fetch('/api/community/interact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'like', postId, memberId })
+            });
+        } catch (e) {
+            toast.error("Failed to like");
+            loadData(memberId); // Revert on error
+        }
     };
 
     const handleJoinChallenge = async (challengeId: string) => {
@@ -110,6 +165,7 @@ export default function CommunityPage() {
                     <TabButton active={activeTab === 'feed'} onClick={() => setActiveTab('feed')} icon={<MessageCircle size={18} />} label="Feed" />
                     <TabButton active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy size={18} />} label="Ranking" />
                     <TabButton active={activeTab === 'challenges'} onClick={() => setActiveTab('challenges')} icon={<Flame size={18} />} label="Challenges" />
+                    <TabButton active={activeTab === 'duels'} onClick={() => setActiveTab('duels')} icon={<Users size={18} />} label="Duels" />
                 </div>
             </div>
 
@@ -136,26 +192,48 @@ export default function CommunityPage() {
                         {activeTab === 'feed' && (
                             <div className="space-y-4">
                                 {/* Create Post Input */}
-                                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-3">
-                                    <Avatar className="h-10 w-10 bg-gray-200">
-                                        <AvatarFallback>ME</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 flex gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Share your victory..."
-                                            value={postContent}
-                                            onChange={(e) => setPostContent(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleCreatePost()}
-                                            className="bg-gray-50 flex-1 rounded-full px-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-100"
-                                        />
+                                <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-3">
+                                    <div className="flex gap-3">
+                                        <Avatar className="h-10 w-10 bg-gray-200">
+                                            <AvatarFallback>ME</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1 space-y-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Share your victory..."
+                                                value={postContent}
+                                                onChange={(e) => setPostContent(e.target.value)}
+                                                className="w-full bg-gray-50 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-100"
+                                            />
+
+                                            {/* Image URL Input (MVP) */}
+                                            <input
+                                                type="text"
+                                                placeholder="Image URL (optional)..."
+                                                className="w-full text-xs text-gray-500 bg-transparent border-b border-gray-100 focus:outline-none"
+                                                id="post-image-url"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2">
+                                        <div className="flex gap-2">
+                                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-orange-500" onClick={() => document.getElementById('post-image-url')?.focus()}>
+                                                <Share2 size={16} />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-blue-500" onClick={handleAiPost}>
+                                                <Bot size={16} /> <span className="ml-1 text-xs">AI Post</span>
+                                            </Button>
+                                        </div>
                                         <Button
-                                            size="icon"
-                                            className="rounded-full bg-orange-500 hover:bg-orange-600 h-10 w-10"
-                                            onClick={handleCreatePost}
+                                            size="sm"
+                                            className="rounded-full bg-orange-500 hover:bg-orange-600 px-6"
+                                            onClick={() => {
+                                                const imgUrl = (document.getElementById('post-image-url') as HTMLInputElement).value;
+                                                handleCreatePost(imgUrl);
+                                            }}
                                             disabled={posting || !postContent.trim()}
                                         >
-                                            <Send size={16} />
+                                            Post
                                         </Button>
                                     </div>
                                 </div>
@@ -165,25 +243,42 @@ export default function CommunityPage() {
                                 )}
 
                                 {feed.map(post => (
-                                    <div key={post.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                                    <div key={post.id} className={`bg-white p-4 rounded-2xl shadow-sm border ${post.type === 'ai' ? 'border-purple-200 bg-purple-50/30' : 'border-gray-100'}`}>
                                         <div className="flex items-center gap-3 mb-3">
-                                            <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-400 to-indigo-400 text-white">
-                                                <AvatarFallback>{post.avatar}</AvatarFallback>
+                                            <Avatar className={`h-10 w-10 ${post.type === 'ai' ? 'bg-purple-100 text-purple-600' : 'bg-gradient-to-br from-blue-400 to-indigo-400 text-white'}`}>
+                                                <AvatarFallback>
+                                                    {post.type === 'ai' ? <Bot size={20} /> : post.avatar}
+                                                </AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <h3 className="font-bold text-sm text-gray-900">{post.user}</h3>
+                                                <h3 className="font-bold text-sm text-gray-900 flex items-center gap-1">
+                                                    {post.type === 'ai' ? 'AI Coach' : post.user}
+                                                    {post.type === 'owner' && <span className="bg-orange-100 text-orange-600 text-[10px] px-1.5 py-0.5 rounded font-bold">OWNER</span>}
+                                                    {post.type === 'ai' && <span className="bg-purple-100 text-purple-600 text-[10px] px-1.5 py-0.5 rounded font-bold">BOT</span>}
+                                                </h3>
                                                 <p className="text-xs text-gray-400">{post.time}</p>
                                             </div>
                                         </div>
-                                        <p className="text-gray-800 text-sm mb-4 leading-relaxed">{post.content}</p>
-                                        <div className="flex items-center gap-6 text-gray-400 text-sm">
-                                            <button className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
-                                                <Heart size={18} /> {post.likes}
+
+                                        <p className="text-gray-800 text-sm mb-3 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+                                        {post.image && (
+                                            <div className="mb-4 rounded-xl overflow-hidden shadow-sm">
+                                                <img src={post.image} alt="Post" className="w-full h-auto object-cover max-h-64" />
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-6 text-gray-500 text-sm border-t border-gray-50 pt-3">
+                                            <button
+                                                onClick={() => handleLike(post.id)}
+                                                className={`flex items-center gap-1.5 transition-colors ${post.isLiked ? 'text-red-500 font-bold' : 'hover:text-red-500'}`}
+                                            >
+                                                <Heart size={18} fill={post.isLiked ? "currentColor" : "none"} /> {post.likes}
                                             </button>
                                             <button className="flex items-center gap-1.5 hover:text-blue-500 transition-colors">
                                                 <MessageCircle size={18} /> {post.comments}
                                             </button>
-                                            <button className="ml-auto">
+                                            <button className="ml-auto hover:text-gray-800">
                                                 <Share2 size={18} />
                                             </button>
                                         </div>
@@ -260,6 +355,43 @@ export default function CommunityPage() {
                                         )}
                                     </div>
                                 ))}
+                            </div>
+                        )}
+
+                        {/* DUELS TAB */}
+                        {activeTab === 'duels' && (
+                            <div className="space-y-4">
+                                <div className="bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl p-6 text-white text-center shadow-lg shadow-red-200">
+                                    <h2 className="text-2xl font-bold mb-2">⚔️ Gym Battle Arena</h2>
+                                    <p className="text-white/90 mb-4 text-sm">Challenge a friend to a 1v1 duel!</p>
+                                    <Button className="bg-white text-red-600 hover:bg-gray-100 w-full rounded-full font-bold">
+                                        Start a Duel
+                                    </Button>
+                                </div>
+
+                                <h3 className="font-bold text-gray-900 mt-6">My Active Duels</h3>
+                                {(challenges || []).filter((c: any) => c.is_duel).length === 0 ? (
+                                    <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-gray-300">
+                                        <p className="text-gray-400 text-sm">No active battles. Start one!</p>
+                                    </div>
+                                ) : (
+                                    (challenges || []).filter((c: any) => c.is_duel).map((duel: any) => (
+                                        <div key={duel.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-red-100 p-2 rounded-lg text-red-600">
+                                                    <Flame size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-sm text-gray-900">{duel.title}</h4>
+                                                    <p className="text-xs text-gray-500">vs {duel.opponent?.name || 'Waiting...'}</p>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-bold bg-gray-100 px-2 py-1 rounded-md text-gray-600 uppercase">
+                                                {duel.status}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         )}
                     </>

@@ -1,31 +1,19 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/supabase';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
     try {
-        const body = await request.json();
-        const { memberId, challengeId } = body;
+        const { memberId, challengeId } = await req.json();
 
         if (!memberId || !challengeId) {
-            return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing IDs' }, { status: 400 });
         }
 
-        const { data, error } = await supabase
-            .from('challenge_participants')
-            .insert([{
-                member_id: memberId,
-                challenge_id: challengeId,
-                progress: 0,
-                completed: false
-            }])
-            .select()
-            .single();
+        await db.community.joinChallenge(memberId, challengeId);
 
-        if (error) throw error;
-
-        return NextResponse.json({ success: true, data });
-
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json({ error: 'Failed to join challenge' }, { status: 500 });
     }
 }

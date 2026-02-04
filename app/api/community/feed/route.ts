@@ -1,39 +1,37 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/supabase';
 
-export async function GET(request: Request) {
+export async function GET() {
     try {
-        const { data, error } = await supabase
-            .from('posts')
-            .select(`
-                id,
-                content,
-                likes,
-                created_at,
-                members (
-                    name,
-                    email
-                )
-            `)
-            .order('created_at', { ascending: false })
-            .limit(20);
+        const feed = await db.community.getFeed();
 
-        if (error) throw error;
-
-        // Transform data for frontend
-        const posts = data.map((post: any) => ({
+        // Transform for UI
+        const formatted = feed.map((post: any) => ({
             id: post.id,
-            user: post.members?.name || 'Unknown',
-            avatar: (post.members?.name?.[0] || 'U').toUpperCase(),
+            user: post.members?.name || 'Unknown User',
+            avatar: post.members?.name?.substring(0, 2).toUpperCase() || 'GU',
+            time: new Date(post.created_at).toLocaleDateString(),
             content: post.content,
-            likes: post.likes,
-            comments: 0, // Not implemented yet
-            time: new Date(post.created_at).toLocaleDateString()
+            likes: post.likes || 0,
+            comments: 0
         }));
 
-        return NextResponse.json(posts);
+        return NextResponse.json(formatted);
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to fetch feed' }, { status: 500 });
+    }
+}
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+export async function POST(req: Request) {
+    try {
+        const { memberId, content } = await req.json();
+        const post = await db.community.createPost({
+            member_id: memberId,
+            content,
+            likes: 0
+        });
+        return NextResponse.json({ success: true, post });
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to create post' }, { status: 500 });
     }
 }

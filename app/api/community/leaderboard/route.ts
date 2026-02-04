@@ -1,27 +1,20 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { db } from '@/lib/supabase';
 
-export async function GET(request: Request) {
+export async function GET() {
     try {
-        const { data, error } = await supabase
-            .from('members')
-            .select('id, name, points, level')
-            .order('points', { ascending: false })
-            .limit(10);
+        const data = await db.community.getLeaderboard();
 
-        if (error) throw error;
-
-        const leaderboard = data.map((m: any, index: number) => ({
+        const formatted = data.map((m: any, idx: number) => ({
             id: m.id,
-            rank: index + 1,
+            rank: idx + 1,
             name: m.name,
             points: m.points || 0,
-            avatar: (m.name?.[0] || 'U').toUpperCase()
+            avatar: m.name.substring(0, 2).toUpperCase()
         }));
 
-        return NextResponse.json(leaderboard);
-
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json(formatted);
+    } catch (error) {
+        return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
     }
 }

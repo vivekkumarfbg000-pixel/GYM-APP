@@ -10,6 +10,7 @@ import { DashboardSkeleton } from '@/components/shared/skeleton-loaders';
 import { format } from 'date-fns';
 import { SmartCommandCenter } from '@/components/dashboard/smart-command-center';
 import { GymPulseFeed } from '@/components/dashboard/gym-pulse-feed';
+import { ChurnRiskList } from '@/components/dashboard/churn-risk-list';
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
@@ -104,6 +105,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Main Content Grid: Command Center & Pulse Feed */}
+            {/* Main Content Grid: Command Center & Pulse Feed */}
             <div className="grid gap-6 md:grid-cols-7 lg:grid-cols-7">
 
                 {/* Left Column: Command Center & Charts (4 cols) */}
@@ -127,9 +129,9 @@ export default function DashboardPage() {
                 {/* Right Column: Intelligence Feed & Heatmap (3 cols) */}
                 <div className="md:col-span-3 space-y-6">
 
-                    {/* Intelligence Feed */}
+                    {/* Churn Risk Monitor (NEW) */}
                     <div className="h-[340px]">
-                        <GymPulseFeed />
+                        <ChurnRiskList />
                     </div>
 
                     {/* Utilization Heatmap */}
