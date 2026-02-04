@@ -71,20 +71,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={loading || props.disabled}
         {...props}
       >
-        {loading && <Loader2 className="animate-spin" />}
-        {children}
-        {ripple && ripples.map((ripple) => (
-          <span
-            key={ripple.id}
-            className="absolute rounded-full bg-white/40 animate-ripple pointer-events-none"
-            style={{
-              left: ripple.x,
-              top: ripple.y,
-              width: 0,
-              height: 0,
-            }}
-          />
-        ))}
+        {asChild ? (
+          children
+        ) : (
+          <>
+            {loading && <Loader2 className="animate-spin" />}
+            {children}
+            {ripple && ripples.map((ripple) => (
+              <span
+                key={ripple.id}
+                className="absolute rounded-full bg-white/40 animate-ripple pointer-events-none"
+                style={{
+                  left: ripple.x,
+                  top: ripple.y,
+                  width: 0,
+                  height: 0,
+                }}
+              />
+            ))}
+          </>
+        )}
       </Comp>
     );
   }
