@@ -17,6 +17,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GymFlow AI - Revenue Intelligence for Gyms",
   description: "AI-powered gym management platform for revenue optimization",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.jpg",
+    apple: "/logo.jpg",
+    shortcut: "/logo.jpg",
+  },
 };
 
 export default function RootLayout({

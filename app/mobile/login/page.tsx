@@ -95,8 +95,13 @@ function MobileLoginContent() {
         <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
             <div className="w-full max-w-sm space-y-8">
                 <div className="text-center">
-                    <div className="mx-auto h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <Smartphone className="h-8 w-8 text-blue-600" />
+                    <div className="mx-auto h-24 w-24 bg-transparent flex items-center justify-center mb-6 shadow-lg rounded-full overflow-hidden border-4 border-blue-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src="/logo.jpg"
+                            alt="GymFlow Logo"
+                            className="h-full w-full object-cover"
+                        />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900">Member Login</h2>
                     <p className="mt-2 text-sm text-gray-600">

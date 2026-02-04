@@ -152,12 +152,15 @@ export default function MobileDashboard() {
             {/* Header / Hero Section */}
             <div className="bg-gradient-to-br from-blue-700 via-indigo-600 to-purple-700 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-indigo-200">
                 <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <p className="text-blue-100 text-sm font-medium mb-1 tracking-wide">Good Morning,</p>
-                        <h1 className="text-3xl font-bold text-white tracking-tight">{name.split(' ')[0]}</h1>
-                    </div>
-                    <div className="h-11 w-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-inner">
-                        <span className="font-bold text-lg">{name.charAt(0)}</span>
+                    <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-full border-2 border-white/30 shadow-lg overflow-hidden flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/logo.jpg" alt="Logo" className="h-full w-full object-cover" />
+                        </div>
+                        <div>
+                            <p className="text-blue-100 text-xs font-medium tracking-wide opacity-90">Good Morning,</p>
+                            <h1 className="text-2xl font-bold text-white tracking-tight leading-tight">{name.split(' ')[0]}</h1>
+                        </div>
                     </div>
                 </div>
 

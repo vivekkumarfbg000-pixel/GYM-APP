@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 export async function POST(req: Request) {
@@ -14,9 +14,14 @@ export async function POST(req: Request) {
             }, { status: 500 });
         }
 
+        // Initialize Google provider explicitly to ensure API key is passed correctly
+        const google = createGoogleGenerativeAI({
+            apiKey: apiKey,
+        });
+
         // Trigger AI Generation (Motivational Quote)
         const { text } = await generateText({
-            model: google('gemini-2.0-flash-exp', { apiKey }),
+            model: google('gemini-1.5-flash'),
             prompt: "Generate a short, high-energy motivational quote for gym goers. Add 2-3 emojis. Plain text only.",
         });
 
