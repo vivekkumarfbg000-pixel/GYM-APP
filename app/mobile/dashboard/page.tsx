@@ -40,19 +40,34 @@ export default function MobileDashboard() {
 
     const handleCheckIn = async (memberId: string) => {
         try {
-            const res = await fetch('/api/member/check-in', {
+            const res = await fetch('/api/gamification/streak', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ memberId })
             });
             const data = await res.json();
-            if (data.success && data.firstCheckIn) {
-                toast.success(`Daily Check-in! +${data.pointsAdded} Points 🔥`);
+
+            if (data.status) {
+                const messages: Record<string, string> = {
+                    'increased': `🔥 ${data.streak} Day Streak! ${data.message}`,
+                    'maintained': `✨ ${data.message}`,
+                    'reset': `💪 ${data.message}`
+                };
+
+                if (data.status === 'increased') {
+                    toast.success(messages[data.status]);
+                } else {
+                    toast(messages[data.status]);
+                }
+
                 // Update local state for immediate feedback
-                setStreakData(prev => ({ ...prev, streak: data.streak, lastCheckIn: new Date().toISOString().split('T')[0] }));
+                setStreakData({
+                    streak: data.streak,
+                    lastCheckIn: new Date().toISOString().split('T')[0]
+                });
             }
         } catch (error) {
-            console.error('Check-in failed', error);
+            console.error('Streak update failed', error);
         }
     };
 
@@ -65,8 +80,8 @@ export default function MobileDashboard() {
                 setMemberData(profileData.data);
                 // Set initial streak data from profile
                 setStreakData({
-                    streak: profileData.data.daily_streak || 0,
-                    lastCheckIn: profileData.data.last_streak_date || ''
+                    streak: profileData.data.streak_current || 0,
+                    lastCheckIn: profileData.data.last_activity_date || ''
                 });
             }
 

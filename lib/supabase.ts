@@ -28,6 +28,9 @@ export type DbMember = {
     last_check_in: string | null;
     total_revenue: number;
     pt_sessions: number;
+    streak_current: number;
+    streak_longest: number;
+    last_activity_date: string | null;
     created_at: string;
     updated_at: string;
 };
@@ -403,7 +406,7 @@ export const db = {
         getLeaderboard: async () => {
             const { data, error } = await supabase
                 .from('members')
-                .select('id, name, points, level')
+                .select('id, name, points, level, streak_current')
                 .order('points', { ascending: false })
                 .limit(10);
             if (error) throw error;

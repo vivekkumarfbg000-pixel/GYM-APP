@@ -10,6 +10,7 @@ export async function GET() {
             rank: idx + 1,
             name: m.name,
             points: m.points || 0,
+            streak: m.streak_current || 0,
             avatar: m.name.substring(0, 2).toUpperCase()
         }));
 

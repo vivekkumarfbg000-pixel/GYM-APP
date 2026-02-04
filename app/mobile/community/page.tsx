@@ -17,6 +17,15 @@ export default function CommunityPage() {
     const [postContent, setPostContent] = useState('');
     const [posting, setPosting] = useState(false);
 
+    // Comments state
+    const [expandedPost, setExpandedPost] = useState<string | null>(null);
+    const [comments, setComments] = useState<Record<string, any[]>>({});
+    const [loadingComments, setLoadingComments] = useState<Record<string, boolean>>({});
+
+    // Polls state
+    const [polls, setPolls] = useState<any[]>([]);
+    const [votedPolls, setVotedPolls] = useState<Record<string, string>>({}); // pollId -> optionId
+
     // Member ID (Assuming stored in localStorage for now)
     const [memberId, setMemberId] = useState<string | null>(null);
 
@@ -30,9 +39,30 @@ export default function CommunityPage() {
         setLoading(true);
         try {
             if (activeTab === 'feed') {
-                const res = await fetch('/api/community/feed');
+                // Fetch posts
+                const res = await fetch(`/api/community/feed?memberId=${mid || ''}`);
                 const data = await res.json();
                 if (Array.isArray(data)) setFeed(data);
+
+                // Fetch polls
+                const pollsRes = await fetch('/api/community/polls');
+                const pollsData = await pollsRes.json();
+                if (Array.isArray(pollsData)) {
+                    setPolls(pollsData);
+
+                    // Check which polls user has voted on
+                    if (mid) {
+                        const voted: Record<string, string> = {};
+                        for (const poll of pollsData) {
+                            const voteRes = await fetch(`/api/community/polls/vote?pollId=${poll.id}&memberId=${mid}`);
+                            const voteData = await voteRes.json();
+                            if (voteData.voted) {
+                                voted[poll.id] = voteData.optionId;
+                            }
+                        }
+                        setVotedPolls(voted);
+                    }
+                }
             }
             if (activeTab === 'leaderboard') {
                 const res = await fetch('/api/community/leaderboard');
@@ -146,6 +176,113 @@ export default function CommunityPage() {
         }
     };
 
+    const toggleComments = async (postId: string) => {
+        if (expandedPost === postId) {
+            setExpandedPost(null);
+            return;
+        }
+
+        setExpandedPost(postId);
+
+        // Fetch if not already loaded
+        if (!comments[postId]) {
+            setLoadingComments(prev => ({ ...prev, [postId]: true }));
+            try {
+                const res = await fetch(`/api/community/comments?postId=${postId}`);
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    setComments(prev => ({ ...prev, [postId]: data }));
+                }
+            } catch (error) {
+                console.error(error);
+            }
+            setLoadingComments(prev => ({ ...prev, [postId]: false }));
+        }
+    };
+
+    const handleComment = async (postId: string, content: string) => {
+        if (!content.trim() || !memberId) return;
+
+        // Optimistic update
+        const newComment = {
+            id: 'temp-' + Date.now(),
+            user: 'Me',
+            avatar: 'ME',
+            content: content,
+            time: 'Just now'
+        };
+
+        setComments(prev => ({
+            ...prev,
+            [postId]: [...(prev[postId] || []), newComment]
+        }));
+
+        // Update feed count
+        setFeed(prev => prev.map(p =>
+            p.id === postId ? { ...p, comments: p.comments + 1 } : p
+        ));
+
+        try {
+            await fetch('/api/community/interact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'comment', postId, memberId, content })
+            });
+            // Background re-fetch could happen here to get real ID/timestamp
+        } catch (error) {
+            toast.error('Failed to comment');
+        }
+    };
+
+    const handleVote = async (pollId: string, optionId: string) => {
+        if (!memberId) {
+            toast.error('Please log in to vote');
+            return;
+        }
+
+        // Optimistic update
+        setVotedPolls(prev => ({ ...prev, [pollId]: optionId }));
+
+        // Update poll data optimistically
+        setPolls(prev => prev.map(poll => {
+            if (poll.id === pollId) {
+                return {
+                    ...poll,
+                    options: poll.options.map((opt: any) => {
+                        if (opt.id === optionId) {
+                            return { ...opt, votes: opt.votes + 1 };
+                        }
+                        // If user changed vote, decrement old option
+                        if (votedPolls[pollId] && opt.id === votedPolls[pollId]) {
+                            return { ...opt, votes: Math.max(0, opt.votes - 1) };
+                        }
+                        return opt;
+                    }),
+                    totalVotes: votedPolls[pollId] ? poll.totalVotes : poll.totalVotes + 1
+                };
+            }
+            return poll;
+        }));
+
+        try {
+            const res = await fetch('/api/community/polls/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pollId, memberId, optionId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('Vote recorded!');
+                // Refresh polls data to get accurate counts
+                loadData(memberId);
+            }
+        } catch (error) {
+            toast.error('Failed to vote');
+            // Revert on error
+            loadData(memberId);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 pb-24 animate-in fade-in duration-300">
             {/* Header */}
@@ -188,7 +325,6 @@ export default function CommunityPage() {
                     </>
                 ) : (
                     <>
-                        {/* FEED TAB */}
                         {activeTab === 'feed' && (
                             <div className="space-y-4">
                                 {/* Create Post Input */}
@@ -238,7 +374,67 @@ export default function CommunityPage() {
                                     </div>
                                 </div>
 
-                                {feed.length === 0 && (
+                                {/* Polls Section */}
+                                {polls.map(poll => {
+                                    const userVoted = votedPolls[poll.id];
+                                    return (
+                                        <div key={poll.id} className="bg-gradient-to-br from-indigo-50 to-purple-50 p-5 rounded-2xl shadow-sm border border-indigo-100">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex-1">
+                                                    <h3 className="font-bold text-gray-900 text-base mb-1">{poll.question}</h3>
+                                                    <p className="text-xs text-indigo-600 font-medium">by {poll.createdBy}</p>
+                                                </div>
+                                                <div className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">
+                                                    {poll.totalVotes} {poll.totalVotes === 1 ? 'vote' : 'votes'}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                {poll.options.map((option: any) => {
+                                                    const isVoted = userVoted === option.id;
+                                                    const percentage = poll.totalVotes > 0 ? Math.round((option.votes / poll.totalVotes) * 100) : 0;
+
+                                                    return (
+                                                        <button
+                                                            key={option.id}
+                                                            onClick={() => handleVote(poll.id, option.id)}
+                                                            className={`w-full text-left p-3 rounded-xl transition-all relative overflow-hidden ${isVoted
+                                                                    ? 'bg-indigo-600 text-white shadow-md'
+                                                                    : userVoted
+                                                                        ? 'bg-white/50 text-gray-600 cursor-default'
+                                                                        : 'bg-white hover:bg-indigo-100 text-gray-700 hover:shadow-sm active:scale-98'
+                                                                }`}
+                                                            disabled={!!userVoted}
+                                                        >
+                                                            {/* Progress bar background */}
+                                                            {userVoted && (
+                                                                <div
+                                                                    className={`absolute inset-0 ${isVoted ? 'bg-indigo-700/30' : 'bg-indigo-200/40'} transition-all duration-500`}
+                                                                    style={{ width: `${percentage}%` }}
+                                                                />
+                                                            )}
+
+                                                            <div className="relative z-10 flex items-center justify-between">
+                                                                <span className="font-medium text-sm">{option.text}</span>
+                                                                {userVoted && (
+                                                                    <span className={`text-xs font-bold ${isVoted ? 'text-white' : 'text-indigo-700'}`}>
+                                                                        {percentage}%
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {userVoted && (
+                                                <p className="text-xs text-indigo-600 mt-3 text-center">✓ You voted</p>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+
+                                {feed.length === 0 && polls.length === 0 && (
                                     <div className="text-center py-8 text-gray-400 text-sm">No posts yet. Be the first!</div>
                                 )}
 
@@ -275,13 +471,70 @@ export default function CommunityPage() {
                                             >
                                                 <Heart size={18} fill={post.isLiked ? "currentColor" : "none"} /> {post.likes}
                                             </button>
-                                            <button className="flex items-center gap-1.5 hover:text-blue-500 transition-colors">
+                                            <button
+                                                className={`flex items-center gap-1.5 transition-colors ${expandedPost === post.id ? 'text-blue-600 font-bold' : 'hover:text-blue-500'}`}
+                                                onClick={() => toggleComments(post.id)}
+                                            >
                                                 <MessageCircle size={18} /> {post.comments}
                                             </button>
                                             <button className="ml-auto hover:text-gray-800">
                                                 <Share2 size={18} />
                                             </button>
                                         </div>
+
+                                        {/* Comments Section */}
+                                        {expandedPost === post.id && (
+                                            <div className="mt-4 pt-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
+                                                <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1">
+                                                    {loadingComments[post.id] ? (
+                                                        <p className="text-xs text-center text-gray-400">Loading comments...</p>
+                                                    ) : (comments[post.id] || []).length > 0 ? (
+                                                        (comments[post.id] || []).map((comment: any) => (
+                                                            <div key={comment.id} className="flex gap-2 text-sm bg-gray-50 p-2 rounded-lg">
+                                                                <Avatar className="h-6 w-6 mt-1">
+                                                                    <AvatarFallback className="text-[10px] bg-gray-200">{comment.avatar}</AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="flex-1">
+                                                                    <div className="flex justify-between items-baseline">
+                                                                        <span className="font-bold text-xs">{comment.user}</span>
+                                                                        <span className="text-[10px] text-gray-400">{comment.time}</span>
+                                                                    </div>
+                                                                    <p className="text-gray-700 text-xs mt-0.5">{comment.content}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-xs text-center text-gray-400 py-2">No comments yet. Say something!</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Add a comment..."
+                                                        className="flex-1 text-sm bg-gray-50 border-none rounded-full px-4 py-2 focus:ring-1 focus:ring-blue-200"
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                handleComment(post.id, (e.target as HTMLInputElement).value);
+                                                                (e.target as HTMLInputElement).value = '';
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-50"
+                                                        onClick={(e) => {
+                                                            const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                            handleComment(post.id, input.value);
+                                                            input.value = '';
+                                                        }}
+                                                    >
+                                                        <Send size={16} />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -299,7 +552,15 @@ export default function CommunityPage() {
                                             <AvatarFallback className="bg-gray-200 text-gray-600">{user.avatar}</AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1">
-                                            <h3 className="font-bold text-gray-900">{user.name}</h3>
+                                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                                {user.name}
+                                                {user.streak > 0 && (
+                                                    <span className="flex items-center gap-1 text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-bold">
+                                                        <Flame size={10} className="fill-current" />
+                                                        {user.streak}
+                                                    </span>
+                                                )}
+                                            </h3>
                                             <p className="text-xs text-gray-500">{user.points} Points</p>
                                         </div>
                                         {user.rank === 1 && <Trophy className="text-yellow-500" size={24} />}

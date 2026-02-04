@@ -1,23 +1,54 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/supabase';
+import { db, supabase } from '@/lib/supabase';
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const feed = await db.community.getFeed();
+        const { searchParams } = new URL(req.url);
+        const memberId = searchParams.get('memberId');
 
-        // Transform for UI
-        const formatted = feed.map((post: any) => ({
-            id: post.id,
-            user: post.members?.name || 'Unknown User',
-            avatar: post.members?.name?.substring(0, 2).toUpperCase() || 'GU',
-            time: new Date(post.created_at).toLocaleDateString(),
-            content: post.content,
-            likes: post.likes || 0,
-            comments: 0
+        // Fetch posts
+        const posts = await db.community.getFeed();
+
+        // Enhance with dynamic data (likes check, comment counts)
+        // Note: In a production app, this should be a single joined query or view for performance
+        const enhancedPosts = await Promise.all(posts.map(async (post: any) => {
+            // Get comment count
+            const { count: commentCount } = await supabase
+                .from('post_comments')
+                .select('*', { count: 'exact', head: true })
+                .eq('post_id', post.id);
+
+            // Check if liked by current user
+            let isLiked = false;
+            if (memberId) {
+                const { count } = await supabase
+                    .from('post_likes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('post_id', post.id)
+                    .eq('member_id', memberId);
+                isLiked = (count || 0) > 0;
+            }
+
+            // Get actual like count (if not using the column)
+            // For now relying on post.likes column, but could fetch count here too if needed
+
+            return {
+                id: post.id,
+                user: post.members?.name || 'Unknown User',
+                avatar: post.members?.name?.substring(0, 2).toUpperCase() || 'GU', // Fallback avatar
+                time: new Date(post.created_at).toLocaleDateString(),
+                content: post.content,
+                image: post.image_url,
+                likes: post.likes || 0,
+                isLiked,
+                comments: commentCount || 0,
+                type: post.type || 'regular'
+            };
         }));
 
-        return NextResponse.json(formatted);
+        return NextResponse.json(enhancedPosts);
     } catch (error) {
+        console.error('Feed error:', error);
         return NextResponse.json({ error: 'Failed to fetch feed' }, { status: 500 });
     }
 }
