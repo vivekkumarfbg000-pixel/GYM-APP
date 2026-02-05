@@ -43,13 +43,28 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ALTER TABLE gym_owners ENABLE ROW LEVEL SECURITY;
 
 -- 6. Create RLS policies for gym_owners (allow all for now, will refine later)
+-- 6. Create RLS policies for gym_owners (allow all for now, will refine later)
+DO $$ 
+BEGIN
+    DROP POLICY IF EXISTS "Allow all operations on gym_owners" ON gym_owners;
+EXCEPTION
+    WHEN undefined_object THEN NULL;
+END $$;
+
 CREATE POLICY "Allow all operations on gym_owners" ON gym_owners FOR ALL USING (true) WITH CHECK (true);
 
 -- 7. Update policies for members table to support multi-gym
--- Drop existing overly permissive policy if it exists
 DO $$ 
 BEGIN
     DROP POLICY IF EXISTS "Allow all operations on members" ON members;
+EXCEPTION
+    WHEN undefined_object THEN NULL;
+END $$;
+
+-- Drop new policies if they exist to allow recreation
+DO $$ 
+BEGIN
+    DROP POLICY IF EXISTS "Gym owners can manage their members" ON members;
 EXCEPTION
     WHEN undefined_object THEN NULL;
 END $$;
