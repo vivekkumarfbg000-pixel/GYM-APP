@@ -1,57 +1,72 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// POST - Vote on a poll
-export async function POST(req: Request) {
-    try {
-        const { pollId, memberId, optionId } = await req.json();
+// Check if user has voted (GET)
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const pollId = searchParams.get('pollId');
+    const memberId = searchParams.get('memberId');
 
-        if (!pollId || !memberId || !optionId) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-        }
+    if (!pollId || !memberId) {
+        return NextResponse.json({ error: 'Missing params' }, { status: 400 });
+    }
 
-        // Call the database function
-        const { data, error } = await supabase.rpc('vote_on_poll', {
-            p_poll_id: pollId,
-            p_member_id: memberId,
-            p_option_id: optionId
-        });
+    const { data } = await supabase
+        .from('poll_votes')
+        .select('option_id')
+        .eq('poll_id', pollId)
+        .eq('member_id', memberId)
+        .single();
 
-        if (error) throw error;
-
-        return NextResponse.json(data);
-    } catch (error: any) {
-        console.error('Vote error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (data) {
+        return NextResponse.json({ voted: true, optionId: data.option_id });
+    } else {
+        return NextResponse.json({ voted: false });
     }
 }
 
-// GET - Check if user has voted on a poll
-export async function GET(req: Request) {
+// Vote (POST)
+export async function POST(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-        const pollId = searchParams.get('pollId');
-        const memberId = searchParams.get('memberId');
+        const { pollId, optionId, memberId } = await req.json();
 
-        if (!pollId || !memberId) {
-            return NextResponse.json({ voted: false });
-        }
-
-        const { data, error } = await supabase
+        // 1. Check if already voted
+        const { data: existing } = await supabase
             .from('poll_votes')
-            .select('option_id')
+            .select('*')
             .eq('poll_id', pollId)
             .eq('member_id', memberId)
-            .maybeSingle();
+            .single();
 
-        if (error) throw error;
+        if (existing) {
+            return NextResponse.json({ error: 'Already voted' }, { status: 400 });
+        }
 
-        return NextResponse.json({
-            voted: !!data,
-            optionId: data?.option_id || null
+        // 2. Record vote
+        const { error: voteError } = await supabase
+            .from('poll_votes')
+            .insert([{ poll_id: pollId, option_id: optionId, member_id: memberId }]);
+
+        if (voteError) throw voteError;
+
+        // 3. Increment counts (RPC or direct update)
+        // Increment Option Votes
+        await supabase.rpc('increment_counter', {
+            row_id: optionId,
+            table_name: 'poll_options',
+            col_name: 'votes'
         });
-    } catch (error: any) {
-        console.error('Check vote error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+
+        // Increment Poll Total Votes
+        await supabase.rpc('increment_counter', {
+            row_id: pollId,
+            table_name: 'polls',
+            col_name: 'total_votes'
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Vote error:', error);
+        return NextResponse.json({ error: 'Failed to vote' }, { status: 500 });
     }
 }
