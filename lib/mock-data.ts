@@ -16,6 +16,7 @@ export interface Member {
     totalRevenue: number;
     approved?: boolean;
     status?: string; // Active, Pending, Rejected
+    isActive?: boolean;
 }
 
 export interface ChurnAlert {

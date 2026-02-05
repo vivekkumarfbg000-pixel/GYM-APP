@@ -58,6 +58,69 @@ export default function MembersPage() {
         segment: 'Regular'
     });
 
+    // Password Reset State
+    const [isPasswordResetDialogOpen, setIsPasswordResetDialogOpen] = useState(false);
+    const [passwordResetMember, setPasswordResetMember] = useState<Member | null>(null);
+    const [newPassword, setNewPassword] = useState('');
+    const [generatedPassword, setGeneratedPassword] = useState('');
+
+    const handleToggleActive = async (memberId: string, currentStatus: boolean, gymOwnerId: string) => {
+        try {
+            const res = await fetch('/api/member/toggle-active', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    memberId,
+                    isActive: !currentStatus,
+                    gymOwnerId
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success(`Member ${!currentStatus ? 'activated' : 'deactivated'} successfully`);
+                loadMembers();
+            } else {
+                toast.error(data.error || 'Action failed');
+            }
+        } catch (error) {
+            toast.error('Error processing request');
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!passwordResetMember) return;
+
+        try {
+            // Get gym owner ID from storage (fallback if needed)
+            const gymOwnerId = localStorage.getItem('gymflow_owner_id');
+            if (!gymOwnerId) {
+                toast.error('Authentication error. Please login again.');
+                return;
+            }
+
+            const res = await fetch('/api/member/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    memberId: passwordResetMember.id,
+                    newPassword: newPassword || undefined,
+                    gymOwnerId
+                })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                setGeneratedPassword(data.newPassword);
+                toast.success('Password reset successfully');
+            } else {
+                toast.error(data.error || 'Password reset failed');
+            }
+        } catch (error) {
+            toast.error('Error regarding password reset');
+        }
+    };
+
     // Load members from API
     useEffect(() => {
         loadMembers();
@@ -95,7 +158,8 @@ export default function MembersPage() {
                 totalRevenue: m.total_revenue,
                 ptSessions: m.pt_sessions,
                 approved: m.approved,
-                status: m.status
+                status: m.status,
+                isActive: m.is_active !== false // Default to true if undefined
             }));
 
             setMembers(mappedMembers);
@@ -454,21 +518,40 @@ export default function MembersPage() {
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() => setSelectedMember(member)}
-                                                            >
-                                                                View
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="text-red-600 hover:text-red-700"
-                                                                onClick={() => handleDeleteMember(member.id, member.name)}
-                                                            >
-                                                                Delete
-                                                            </Button>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                                                        <span className="sr-only">Open menu</span>
+                                                                        <span>⋮</span>
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => setSelectedMember(member)}>
+                                                                        View Details
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => {
+                                                                        setPasswordResetMember(member);
+                                                                        setIsPasswordResetDialogOpen(true);
+                                                                        setGeneratedPassword('');
+                                                                        setNewPassword('');
+                                                                    }}>
+                                                                        Reset Password
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => handleToggleActive(
+                                                                        member.id,
+                                                                        member.isActive ?? true,
+                                                                        localStorage.getItem('gymflow_owner_id')!
+                                                                    )}>
+                                                                        {member.isActive ? 'Deactivate Member' : 'Activate Member'}
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="text-red-600 focus:text-red-600"
+                                                                        onClick={() => handleDeleteMember(member.id, member.name)}
+                                                                    >
+                                                                        Delete Member
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
                                                         </>
                                                     )}
                                                 </div>
@@ -544,6 +627,52 @@ export default function MembersPage() {
                     </Card>
                 </div>
             )}
+            {/* Password Reset Dialog */}
+            <Dialog open={isPasswordResetDialogOpen} onOpenChange={setIsPasswordResetDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reset Password for {passwordResetMember?.name}</DialogTitle>
+                        <DialogDescription>
+                            Create a new password for this member.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!generatedPassword ? (
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="new-password">New Password (Optional)</Label>
+                                <Input
+                                    id="new-password"
+                                    placeholder="Leave blank to auto-generate"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                />
+                                <p className="text-sm text-gray-500">
+                                    If left blank, a secure random password will be generated.
+                                </p>
+                            </div>
+                            <Button onClick={handleResetPassword} className="w-full">
+                                Reset Password
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 py-4">
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                                <p className="text-sm text-green-800 mb-2">Password Reset Successful!</p>
+                                <p className="text-2xl font-mono font-bold select-all bg-white p-2 rounded border border-green-100">
+                                    {generatedPassword}
+                                </p>
+                            </div>
+                            <p className="text-sm text-center text-gray-600">
+                                Please copy this password and share it with the member.
+                            </p>
+                            <Button onClick={() => setIsPasswordResetDialogOpen(false)} className="w-full">
+                                Close
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

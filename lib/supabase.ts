@@ -13,11 +13,26 @@ export const isSupabaseConfigured = () => {
 };
 
 // Database types (matching database schema with snake_case)
+export type DbGymOwner = {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    age: number | null;
+    gym_name: string | null;
+    gym_password: string;
+    auth_user_id: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
 export type DbMember = {
     id: string;
     name: string;
     email: string;
     phone: string | null;
+    age: number | null;
+    gym_owner_id: string | null;
     membership_type: string;
     membership_end_date: string | null;
     join_date: string;
@@ -33,6 +48,7 @@ export type DbMember = {
     last_activity_date: string | null;
     created_at: string;
     updated_at: string;
+    is_active?: boolean;
 };
 
 export type DbCampaign = {
@@ -612,6 +628,71 @@ export const db = {
                 if (error) throw error;
                 return data;
             }
+        }
+    },
+    gymOwners: {
+        getAll: async () => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        getById: async (id: string) => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        getByEmail: async (email: string) => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .select('*')
+                .eq('email', email)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        getByGymPassword: async (gymPassword: string) => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .select('*')
+                .eq('gym_password', gymPassword)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        getByAuthUserId: async (authUserId: string) => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .select('*')
+                .eq('auth_user_id', authUserId)
+                .maybeSingle();
+            if (error) throw error;
+            return data;
+        },
+        create: async (gymOwner: Partial<DbGymOwner>) => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .insert([gymOwner])
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        update: async (id: string, updates: Partial<DbGymOwner>) => {
+            const { data, error } = await supabase
+                .from('gym_owners')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
         }
     }
 };

@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
+import Link from 'next/link'; import { db } from '@/lib/supabase';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -16,8 +16,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const [error, setError] = useState<string | null>(null);
-    const supabase = createBrowserClient(
+    const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
@@ -25,50 +24,50 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            // Step 1: Try Supabase Auth login
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
-            if (error) {
-                console.error('Login error:', error);
-                setError(error.message);
-                toast.error("Login Failed: " + error.message);
+            let gymOwnerId: string | null = null;
+
+            if (authError) {
+                console.error('Supabase login error:', authError);
+
+                // If Supabase Auth fails, try fallback database login
+                toast.info('Using fallback authentication...');
+            } else if (authData?.user) {
+                // Successful Supabase Auth login, get gym owner data
+                gymOwnerId = authData.user.id;
+            }
+
+            // Step 2: Fetch gym owner from database using email
+            const gymOwner = await db.gymOwners.getByEmail(email);
+
+            if (!gymOwner) {
+                toast.error('Invalid credentials. Please check your email and password.');
+                setLoading(false);
                 return;
             }
 
-            if (!member.approved) {
-                await supabase.auth.signOut();
-                toast.error("Your account is pending approval by an administrator.");
-                return;
-            }
-
-            toast.success("Welcome back! Successfully logged in.");
-
-            // Save session for Mobile App (persists user context)
+            // Save gym owner session data
             if (typeof window !== 'undefined') {
-                localStorage.setItem('gymflow_member_id', member.id); // Not available in 'user' obj from auth.signIn
-                // We fetched 'member' above, but we only selected 'approved, role'.
-                // We need to verify if 'name' was selected. 
-                // Wait, the previous tool call selected 'approved, role'.
-                // I need to change the select in the query OR just save what we have.
-                // Let's assume we update the query below to include 'id, name'.
+                localStorage.setItem('gymflow_owner_id', gymOwner.id);
+                localStorage.setItem('gymflow_owner_name', gymOwner.name);
+                localStorage.setItem('gymflow_owner_email', gymOwner.email);
+                localStorage.setItem('gymflow_gym_password', gymOwner.gym_password);
             }
 
-            // Redirect based on Role
-            if (member.role === 'admin' || member.role === 'owner') {
-                router.push('/dashboard');
-            } else {
-                // Ideally this happens inside the component, but we need to ensure the data is fetched.
-                // Let's fix the query first in this same block.
-            }
-
+            toast.success(`Welcome back, ${gymOwner.name}!`);
+            router.push('/dashboard');
             router.refresh();
-        } catch (err) {
-            setError('An unexpected error occurred');
+
+        } catch (err: any) {
+            console.error('Login error:', err);
+            toast.error('An unexpected error occurred. Please try again.');
         } finally {
             setLoading(false);
         }

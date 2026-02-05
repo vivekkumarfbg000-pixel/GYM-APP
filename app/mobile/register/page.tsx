@@ -6,10 +6,18 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { UserPlus, ArrowRight, Loader2 } from 'lucide-react';
+import { UserPlus, Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 export default function MobileRegisterPage() {
-    const [form, setForm] = useState({ name: '', email: '', password: '', phone: '' });
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        age: '',
+        gymPassword: ''
+    });
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -21,13 +29,20 @@ export default function MobileRegisterPage() {
             const res = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form)
+                body: JSON.stringify({
+                    name: form.name,
+                    email: form.email,
+                    password: form.password,
+                    phone: form.phone,
+                    age: form.age ? parseInt(form.age) : null,
+                    gymPassword: form.gymPassword
+                })
             });
 
             const data = await res.json();
 
             if (data.success) {
-                toast.success('Registration successful!');
+                toast.success('Registration successful! Please wait for gym owner approval.');
                 // Redirect to pending screen or login with message
                 router.push('/mobile/login?registered=true');
             } else {
@@ -48,44 +63,81 @@ export default function MobileRegisterPage() {
                         <UserPlus size={24} />
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-                    <p className="text-gray-500">Join GymFlow to track your fitness journey.</p>
+                    <p className="text-gray-500">Join your gym to track your fitness journey.</p>
                 </div>
 
                 <form onSubmit={handleRegister} className="space-y-4">
                     <div>
+                        <Label htmlFor="name">Full Name *</Label>
                         <Input
+                            id="name"
                             placeholder="Full Name"
-                            className="bg-gray-50 border-gray-100 h-12"
+                            className="bg-gray-50 border-gray-100 h-12 mt-1"
                             value={form.name}
                             onChange={e => setForm({ ...form, name: e.target.value })}
                             required
                         />
                     </div>
                     <div>
+                        <Label htmlFor="email">Email Address *</Label>
                         <Input
+                            id="email"
                             type="email"
                             placeholder="Email Address"
-                            className="bg-gray-50 border-gray-100 h-12"
+                            className="bg-gray-50 border-gray-100 h-12 mt-1"
                             value={form.email}
                             onChange={e => setForm({ ...form, email: e.target.value })}
                             required
                         />
                     </div>
-                    <div>
-                        <Input
-                            type="tel"
-                            placeholder="Phone Number"
-                            className="bg-gray-50 border-gray-100 h-12"
-                            value={form.phone}
-                            onChange={e => setForm({ ...form, phone: e.target.value })}
-                            required
-                        />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <Label htmlFor="phone">Phone Number *</Label>
+                            <Input
+                                id="phone"
+                                type="tel"
+                                placeholder="Phone Number"
+                                className="bg-gray-50 border-gray-100 h-12 mt-1"
+                                value={form.phone}
+                                onChange={e => setForm({ ...form, phone: e.target.value })}
+                                required
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="age">Age *</Label>
+                            <Input
+                                id="age"
+                                type="number"
+                                placeholder="Age"
+                                className="bg-gray-50 border-gray-100 h-12 mt-1"
+                                value={form.age}
+                                onChange={e => setForm({ ...form, age: e.target.value })}
+                                required
+                            />
+                        </div>
                     </div>
                     <div>
+                        <Label htmlFor="gymPassword">Gym Password *</Label>
                         <Input
+                            id="gymPassword"
+                            type="text"
+                            placeholder="Ask your gym owner for this"
+                            className="bg-gray-50 border-gray-100 h-12 mt-1"
+                            value={form.gymPassword}
+                            onChange={e => setForm({ ...form, gymPassword: e.target.value.toUpperCase() })}
+                            required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                            Enter the password provided by your gym owner to connect your account
+                        </p>
+                    </div>
+                    <div>
+                        <Label htmlFor="password">Create Password *</Label>
+                        <Input
+                            id="password"
                             type="password"
                             placeholder="Create Password"
-                            className="bg-gray-50 border-gray-100 h-12"
+                            className="bg-gray-50 border-gray-100 h-12 mt-1"
                             value={form.password}
                             onChange={e => setForm({ ...form, password: e.target.value })}
                             required
