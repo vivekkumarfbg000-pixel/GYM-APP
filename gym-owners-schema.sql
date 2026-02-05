@@ -18,11 +18,11 @@ CREATE TABLE IF NOT EXISTS gym_owners (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Add gym_owner_id and age to members table
-ALTER TABLE members 
-ADD COLUMN IF NOT EXISTS gym_owner_id UUID REFERENCES gym_owners(id) ON DELETE CASCADE,
-ADD COLUMN IF NOT EXISTS age INTEGER,
-ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+-- 2. Add columns to members table
+-- Note: We use separate statements to avoid errors if some exist
+ALTER TABLE members ADD COLUMN IF NOT EXISTS gym_owner_id UUID REFERENCES gym_owners(id) ON DELETE CASCADE;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS age INTEGER;
+ALTER TABLE members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- 3. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_gym_owners_email ON gym_owners(email);
@@ -31,10 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_gym_owners_auth_user ON gym_owners(auth_user_id);
 CREATE INDEX IF NOT EXISTS idx_members_gym_owner ON members(gym_owner_id);
 
 -- 4. Create updated_at trigger for gym_owners
--- 4. Create updated_at trigger for gym_owners
--- Safely drop first to avoid "already exists" error
 DROP TRIGGER IF EXISTS update_gym_owners_updated_at ON gym_owners;
-
 CREATE TRIGGER update_gym_owners_updated_at 
 BEFORE UPDATE ON gym_owners 
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -42,35 +39,16 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- 5. Enable Row Level Security on gym_owners
 ALTER TABLE gym_owners ENABLE ROW LEVEL SECURITY;
 
--- 6. Create RLS policies for gym_owners (allow all for now, will refine later)
--- 6. Create RLS policies for gym_owners (allow all for now, will refine later)
-DO $$ 
-BEGIN
-    DROP POLICY IF EXISTS "Allow all operations on gym_owners" ON gym_owners;
-EXCEPTION
-    WHEN undefined_object THEN NULL;
-END $$;
-
+-- 6. Create RLS policies for gym_owners
+-- Safely drop existing policies first
+DROP POLICY IF EXISTS "Allow all operations on gym_owners" ON gym_owners;
 CREATE POLICY "Allow all operations on gym_owners" ON gym_owners FOR ALL USING (true) WITH CHECK (true);
 
 -- 7. Update policies for members table to support multi-gym
-DO $$ 
-BEGIN
-    DROP POLICY IF EXISTS "Allow all operations on members" ON members;
-EXCEPTION
-    WHEN undefined_object THEN NULL;
-END $$;
-
--- Drop new policies if they exist to allow recreation
-DO $$ 
-BEGIN
-    DROP POLICY IF EXISTS "Gym owners can manage their members" ON members;
-EXCEPTION
-    WHEN undefined_object THEN NULL;
-END $$;
+DROP POLICY IF EXISTS "Allow all operations on members" ON members;
+DROP POLICY IF EXISTS "Gym owners can manage their members" ON members;
 
 -- Create gym-aware policies for members
--- Gym owners can see and manage their members
 CREATE POLICY "Gym owners can manage their members" ON members
 FOR ALL
 USING (
@@ -83,7 +61,6 @@ USING (
 );
 
 -- 8. Create a default gym owner for existing members (Migration Support)
--- This ensures existing data continues to work
 INSERT INTO gym_owners (name, email, phone, gym_name, gym_password, age)
 VALUES (
     'Demo Gym Owner',
@@ -104,9 +81,3 @@ WHERE gym_owner_id IS NULL;
 COMMENT ON TABLE gym_owners IS 'Stores gym owner accounts with unique gym passwords for member registration';
 COMMENT ON COLUMN gym_owners.gym_password IS 'Unique password that members use to join this gym during registration';
 COMMENT ON COLUMN members.gym_owner_id IS 'Foreign key linking member to their gym owner for data isolation';
-
--- Migration complete! 
--- Next steps:
--- 1. Verify gym_owners table exists in Supabase dashboard
--- 2. Check that existing members are linked to default gym owner
--- 3. Update application code to use new schema
