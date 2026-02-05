@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link'; import { db } from '@/lib/supabase';
+import Link from 'next/link';
+import { db } from '@/lib/supabase';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -16,10 +17,42 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Forgot Password State
+    const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
+
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        e.stopPropagation(); // Stop bubbling to parent form
+        if (!resetEmail) {
+            toast.error('Please enter your email address');
+            return;
+        }
+
+        setResetLoading(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                redirectTo: `${window.location.origin}/auth/callback?next=/dashboard/settings`,
+            });
+
+            if (error) throw error;
+
+            toast.success('Password reset link sent to your email!');
+            setIsForgotPasswordOpen(false);
+            setResetEmail('');
+        } catch (err: any) {
+            console.error('Reset password error:', err);
+            toast.error(err.message || 'Failed to send reset link');
+        } finally {
+            setResetLoading(false);
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,23 +65,25 @@ export default function LoginPage() {
                 password,
             });
 
-            let gymOwnerId: string | null = null;
-
             if (authError) {
                 console.error('Supabase login error:', authError);
+                toast.error(authError.message || 'Invalid login credentials');
+                setLoading(false);
+                return;
+            }
 
-                // If Supabase Auth fails, try fallback database login
-                toast.info('Using fallback authentication...');
-            } else if (authData?.user) {
-                // Successful Supabase Auth login, get gym owner data
-                gymOwnerId = authData.user.id;
+            if (!authData?.user) {
+                toast.error('Login failed. Please try again.');
+                setLoading(false);
+                return;
             }
 
             // Step 2: Fetch gym owner from database using email
+            // We rely on the email matching between Auth and DB
             const gymOwner = await db.gymOwners.getByEmail(email);
 
             if (!gymOwner) {
-                toast.error('Invalid credentials. Please check your email and password.');
+                toast.error('Account found but no Gym Profile associated. Please contact support.');
                 setLoading(false);
                 return;
             }
@@ -134,9 +169,13 @@ export default function LoginPage() {
                                 <input type="checkbox" className="rounded" />
                                 <span className="text-gray-600">Remember me</span>
                             </label>
-                            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+                            <button
+                                type="button"
+                                onClick={() => setIsForgotPasswordOpen(true)}
+                                className="text-blue-600 hover:text-blue-700 font-medium"
+                            >
                                 Forgot password?
-                            </a>
+                            </button>
                         </div>
                         <Button
                             type="submit"
@@ -154,6 +193,46 @@ export default function LoginPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Forgot Password Dialog - Placed outside the card/form to avoid nesting issues */}
+            {isForgotPasswordOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <Card className="w-full max-w-md shadow-2xl relative">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-2 top-2"
+                            onClick={() => setIsForgotPasswordOpen(false)}
+                        >
+                            ✕
+                        </Button>
+                        <CardHeader>
+                            <CardTitle>Reset Password</CardTitle>
+                            <CardDescription>
+                                Enter your email address and we'll send you a link to reset your password.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleForgotPassword} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="reset-email">Email Address</Label>
+                                    <Input
+                                        id="reset-email"
+                                        type="email"
+                                        placeholder="owner@yourgym.com"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full" disabled={resetLoading}>
+                                    {resetLoading ? 'Sending Link...' : 'Send Reset Link'}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
