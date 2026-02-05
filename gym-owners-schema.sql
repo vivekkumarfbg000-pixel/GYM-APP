@@ -31,6 +31,10 @@ CREATE INDEX IF NOT EXISTS idx_gym_owners_auth_user ON gym_owners(auth_user_id);
 CREATE INDEX IF NOT EXISTS idx_members_gym_owner ON members(gym_owner_id);
 
 -- 4. Create updated_at trigger for gym_owners
+-- 4. Create updated_at trigger for gym_owners
+-- Safely drop first to avoid "already exists" error
+DROP TRIGGER IF EXISTS update_gym_owners_updated_at ON gym_owners;
+
 CREATE TRIGGER update_gym_owners_updated_at 
 BEFORE UPDATE ON gym_owners 
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
