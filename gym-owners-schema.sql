@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS gym_owners (
 -- 2. Add gym_owner_id and age to members table
 ALTER TABLE members 
 ADD COLUMN IF NOT EXISTS gym_owner_id UUID REFERENCES gym_owners(id) ON DELETE CASCADE,
-ADD COLUMN IF NOT EXISTS age INTEGER;
+ADD COLUMN IF NOT EXISTS age INTEGER,
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- 3. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_gym_owners_email ON gym_owners(email);
