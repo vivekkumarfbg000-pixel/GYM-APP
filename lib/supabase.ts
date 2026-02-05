@@ -176,6 +176,28 @@ export type DbDietPlan = {
     created_at: string;
 };
 
+export type DbSettings = {
+    id: string;
+    gym_name: string;
+    manager_name: string | null;
+    address: string | null;
+    phone: string | null;
+    email: string | null;
+    opening_time: string | null;
+    closing_time: string | null;
+    capacity: number;
+    notif_churn_alerts: boolean;
+    notif_new_signups: boolean;
+    notif_payments: boolean;
+    notif_low_stock: boolean;
+    whatsapp_api_key: string | null;
+    whatsapp_phone: string | null;
+    razorpay_key_id: string | null;
+    razorpay_secret: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
 // Database helper object (for future use)
 export const db = {
     members: {
@@ -522,6 +544,74 @@ export const db = {
 
             if (error) throw error;
             return data;
+        }
+    },
+    leads: {
+        getAll: async () => {
+            const { data, error } = await supabase
+                .from('leads')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        create: async (lead: Partial<DbLead>) => {
+            const { data, error } = await supabase
+                .from('leads')
+                .insert([lead])
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        update: async (id: string, updates: Partial<DbLead>) => {
+            const { data, error } = await supabase
+                .from('leads')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        }
+    },
+    settings: {
+        get: async () => {
+            const { data, error } = await supabase
+                .from('gym_settings')
+                .select('*')
+                .limit(1)
+                .single();
+            // Don't throw if not found, just return null, app handles it
+            if (error && error.code !== 'PGRST116') throw error;
+            return data;
+        },
+        update: async (updates: Partial<DbSettings>) => {
+            // Check if exists
+            const { data: existing } = await supabase
+                .from('gym_settings')
+                .select('id')
+                .limit(1)
+                .maybeSingle();
+
+            if (existing) {
+                const { data, error } = await supabase
+                    .from('gym_settings')
+                    .update(updates)
+                    .eq('id', existing.id)
+                    .select()
+                    .single();
+                if (error) throw error;
+                return data;
+            } else {
+                const { data, error } = await supabase
+                    .from('gym_settings')
+                    .insert([updates])
+                    .select()
+                    .single();
+                if (error) throw error;
+                return data;
+            }
         }
     }
 };

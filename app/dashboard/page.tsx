@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, DollarSign, Activity, TrendingUp } from 'lucide-react';
@@ -33,22 +34,26 @@ export default function DashboardPage() {
     const [today, setToday] = useState('');
 
     useEffect(() => {
-        // Mock data loading
-        const timer = setTimeout(() => {
-            setStats({
-                totalMembers: 1245,
-                activeMembers: 982,
-                monthlyRevenue: 42500,
-                retentionRate: 94.2,
-                churnRate: 2.1,
-                visitTraffic: 85
-            });
-            setLoading(false);
-        }, 1200);
+        const fetchStats = async () => {
+            try {
+                const res = await fetch('/api/dashboard/stats');
+                const result = await res.json();
+
+                if (result.success) {
+                    setStats(result.data);
+                } else {
+                    console.error("Failed to load dashboard stats:", result.error);
+                }
+            } catch (error) {
+                console.error("Error loading dashboard stats:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
 
         setToday(format(new Date(), 'EEEE, MMMM do, yyyy'));
-
-        return () => clearTimeout(timer);
     }, []);
 
     if (loading) {
@@ -73,35 +78,43 @@ export default function DashboardPage() {
 
             {/* Top-Level Metrics */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <MetricCard
-                    title="Total Revenue"
-                    value={`$${stats.monthlyRevenue.toLocaleString()}`}
-                    change={trends.revenue}
-                    icon={DollarSign}
-                    trend="up"
-                />
-                <MetricCard
-                    title="Active Members"
-                    value={stats.activeMembers}
-                    change={trends.members}
-                    icon={Users}
-                    trend="up"
-                />
-                <MetricCard
-                    title="Retention Rate"
-                    value={`${stats.retentionRate}%`}
-                    change={trends.churn}
-                    icon={Activity}
-                    trend="neutral"
-                    inverseTrend // negative churn is good
-                />
-                <MetricCard
-                    title="Avg. Daily Visits"
-                    value={stats.visitTraffic}
-                    change={12.5}
-                    icon={TrendingUp}
-                    trend="up"
-                />
+                <Link href="/dashboard/payments">
+                    <MetricCard
+                        title="Total Revenue"
+                        value={`$${stats.monthlyRevenue.toLocaleString()}`}
+                        change={trends.revenue}
+                        icon={DollarSign}
+                        trend="up"
+                    />
+                </Link>
+                <Link href="/dashboard/members">
+                    <MetricCard
+                        title="Active Members"
+                        value={stats.activeMembers}
+                        change={trends.members}
+                        icon={Users}
+                        trend="up"
+                    />
+                </Link>
+                <Link href="/dashboard/analytics">
+                    <MetricCard
+                        title="Retention Rate"
+                        value={`${stats.retentionRate}%`}
+                        change={trends.churn}
+                        icon={Activity}
+                        trend="neutral"
+                        inverseTrend // negative churn is good
+                    />
+                </Link>
+                <Link href="/dashboard/attendance">
+                    <MetricCard
+                        title="Avg. Daily Visits"
+                        value={stats.visitTraffic}
+                        change={12.5}
+                        icon={TrendingUp}
+                        trend="up"
+                    />
+                </Link>
             </div>
 
             {/* Main Content Grid: Command Center & Pulse Feed */}

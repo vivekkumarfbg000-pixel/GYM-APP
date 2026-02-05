@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, Activity, Users, BarChart3, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowRight, Activity, Users, BarChart3, ShieldCheck, Smartphone, Brain, Utensils, Zap, Trophy, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function LandingPage() {
@@ -31,7 +31,7 @@ export default function LandingPage() {
 
       <div className="relative z-10 flex flex-col min-h-screen">
         {/* Navigation */}
-        <header className="border-b border-white/5 backdrop-blur-sm">
+        <header className="border-b border-white/5 backdrop-blur-sm sticky top-0 z-50 bg-neutral-950/80">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
@@ -117,12 +117,12 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
 
-          {/* Features Grid */}
+          {/* Stats Grid */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 max-w-5xl mx-auto border-t border-white/10 pt-12"
+            className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 max-w-5xl mx-auto border-t border-white/10 pt-12 pb-20"
           >
             {[
               { label: 'Total Members', value: '10k+', icon: Users },
@@ -137,6 +137,80 @@ export default function LandingPage() {
               </div>
             ))}
           </motion.div>
+
+          {/* Features Section */}
+          <section id="features" className="w-full py-24 scroll-mt-20">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400 mb-4">
+                Everything You Need
+              </h2>
+              <p className="text-neutral-400 max-w-2xl mx-auto">
+                A comprehensive suite of tools designed to streamline operations and supercharge member engagement.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto text-left">
+              {[
+                {
+                  title: 'Revenue Intelligence',
+                  desc: 'Predictive analytics to track growth, churn risk, and financial health in real-time.',
+                  icon: BarChart3,
+                  color: 'text-blue-400',
+                  bg: 'bg-blue-500/10'
+                },
+                {
+                  title: 'Member Management',
+                  desc: '360° member profiles with attendance tracking, segmentation, and engagement scoring.',
+                  icon: Users,
+                  color: 'text-indigo-400',
+                  bg: 'bg-indigo-500/10'
+                },
+                {
+                  title: 'AI Personal Trainer',
+                  desc: 'Intelligent workout generation tailored to individual goals and available equipment.',
+                  icon: Brain,
+                  color: 'text-purple-400',
+                  bg: 'bg-purple-500/10'
+                },
+                {
+                  title: 'Smart Diet Coach',
+                  desc: 'AI-driven nutrition advice, meal planning, and macro tracking via chat interface.',
+                  icon: Utensils,
+                  color: 'text-green-400',
+                  bg: 'bg-green-500/10'
+                },
+                {
+                  title: 'Community & Challenges',
+                  desc: 'Boost retention with social feeds, gym-wide challenges, and live leaderboards.',
+                  icon: Trophy,
+                  color: 'text-orange-400',
+                  bg: 'bg-orange-500/10'
+                },
+                {
+                  title: 'Seamless Payments',
+                  desc: 'Integrated billing for memberships and products with automated invoice generation.',
+                  icon: CreditCard,
+                  color: 'text-pink-400',
+                  bg: 'bg-pink-500/10'
+                }
+              ].map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  viewport={{ once: true }}
+                  className="p-6 rounded-3xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors"
+                >
+                  <div className={`w-12 h-12 rounded-xl ${feature.bg} ${feature.color} flex items-center justify-center mb-4`}>
+                    <feature.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                  <p className="text-neutral-400 text-sm leading-relaxed">{feature.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </section>
         </main>
 
         <footer className="border-t border-white/5 py-8 text-center text-sm text-neutral-600">

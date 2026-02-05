@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,14 +7,63 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 export default function SettingsPage() {
-    const [notifications, setNotifications] = useState({
-        churnAlerts: true,
-        newSignups: true,
-        payments: true,
-        lowStock: false,
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [settings, setSettings] = useState({
+        gym_name: '',
+        manager_name: '',
+        address: '',
+        phone: '',
+        email: '',
+        opening_time: '',
+        closing_time: '',
+        capacity: 100,
+        notif_churn_alerts: true,
+        notif_new_signups: true,
+        notif_payments: true,
+        notif_low_stock: false,
     });
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if (res.ok) {
+                setSettings(prev => ({ ...prev, ...data }));
+            }
+        } catch (e) {
+            toast.error("Failed to load settings");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+            if (res.ok) {
+                toast.success("Settings saved successfully");
+            } else {
+                toast.error("Update failed");
+            }
+        } catch (e) {
+            toast.error("Network error");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -47,43 +94,72 @@ export default function SettingsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label>Gym Name</Label>
-                                    <Input defaultValue="FitZone Gym" />
+                                    <Input
+                                        value={settings.gym_name}
+                                        onChange={e => setSettings({ ...settings, gym_name: e.target.value })}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Manager Name</Label>
-                                    <Input defaultValue="Rahul Mehta" />
+                                    <Input
+                                        value={settings.manager_name}
+                                        onChange={e => setSettings({ ...settings, manager_name: e.target.value })}
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <Label>Address</Label>
-                                <Input defaultValue="123 MG Road, Bangalore - 560001" />
+                                <Input
+                                    value={settings.address}
+                                    onChange={e => setSettings({ ...settings, address: e.target.value })}
+                                />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label>Phone</Label>
-                                    <Input defaultValue="+91 98765 43210" />
+                                    <Input
+                                        value={settings.phone}
+                                        onChange={e => setSettings({ ...settings, phone: e.target.value })}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Email</Label>
-                                    <Input defaultValue="contact@fitzone.com" />
+                                    <Input
+                                        value={settings.email}
+                                        onChange={e => setSettings({ ...settings, email: e.target.value })}
+                                    />
                                 </div>
                             </div>
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <Label>Opening Time</Label>
-                                    <Input defaultValue="05:00 AM" />
+                                    <Input
+                                        value={settings.opening_time}
+                                        onChange={e => setSettings({ ...settings, opening_time: e.target.value })}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Closing Time</Label>
-                                    <Input defaultValue="11:00 PM" />
+                                    <Input
+                                        value={settings.closing_time}
+                                        onChange={e => setSettings({ ...settings, closing_time: e.target.value })}
+                                    />
                                 </div>
                                 <div>
                                     <Label>Total Capacity</Label>
-                                    <Input defaultValue="250" type="number" />
+                                    <Input
+                                        type="number"
+                                        value={settings.capacity}
+                                        onChange={e => setSettings({ ...settings, capacity: Number(e.target.value) })}
+                                    />
                                 </div>
                             </div>
-                            <Button className="bg-gradient-to-r from-blue-600 to-purple-600">
-                                Save Changes
+                            <Button
+                                className="bg-gradient-to-r from-blue-600 to-purple-600"
+                                onClick={handleSave}
+                                disabled={saving}
+                            >
+                                {saving ? "Saving..." : "Save Changes"}
                             </Button>
                         </CardContent>
                     </Card>

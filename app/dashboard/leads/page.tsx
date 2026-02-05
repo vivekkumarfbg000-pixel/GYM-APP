@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,53 +6,93 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface Lead {
-    id: number;
+    id: any;
     name: string;
     phone: string;
     email: string;
     source: string;
     stage: string;
     score: number;
-    created: string;
-    lastContact: string;
-    notes: string;
+    created_at: string;
     value: number;
+    notes?: string;
 }
 
-const leads: Lead[] = [
-    { id: 1, name: 'Rajiv Malhotra', phone: '+91 98765 12345', email: 'rajiv@email.com', source: 'Instagram Ad', stage: 'Trial', score: 85, created: '2 days ago', lastContact: 'Today', notes: 'Interested in PT', value: 15999 },
-    { id: 2, name: 'Sneha Kapoor', phone: '+91 98765 23456', email: 'sneha@email.com', source: 'Walk-in', stage: 'Negotiation', score: 72, created: '5 days ago', lastContact: 'Yesterday', notes: 'Price sensitive', value: 7999 },
-    { id: 3, name: 'Vikram Reddy', phone: '+91 98765 34567', email: 'vikram@email.com', source: 'Referral', stage: 'Qualified', score: 90, created: '1 day ago', lastContact: 'Today', notes: 'Ready to join', value: 15999 },
-    { id: 4, name: 'Anjali Sharma', phone: '+91 98765 45678', email: 'anjali@email.com', source: 'Google Ads', stage: 'New Lead', score: 45, created: '3 days ago', lastContact: 'Not contacted', notes: 'Left inquiry form', value: 5999 },
-    { id: 5, name: 'Karan Singh', phone: '+91 98765 56789', email: 'karan@email.com', source: 'Facebook', stage: 'Trial', score: 68, created: '1 week ago', lastContact: '2 days ago', notes: 'Trying Yoga classes', value: 7999 },
-];
-
-const funnelData = [
-    { stage: 'New Leads', count: 28, value: 167920, color: 'blue' },
-    { stage: 'Contacted', count: 18, value: 143928, color: 'purple' },
-    { stage: 'Qualified', count: 12, value: 119952, color: 'orange' },
-    { stage: 'Trial', count: 8, value: 63992, color: 'green' },
-    { stage: 'Negotiation', count: 5, value: 39995, color: 'yellow' },
-    { stage: 'Won', count: 3, value: 23997, color: 'emerald' },
-];
-
-const sourceAnalytics = [
-    { source: 'Instagram Ads', leads: 45, converted: 12, rate: 27 },
-    { source: 'Google Ads', leads: 38, converted: 8, rate: 21 },
-    { source: 'Referral', leads: 32, converted: 15, rate: 47 },
-    { source: 'Walk-in', leads: 28, converted: 10, rate: 36 },
-    { source: 'Facebook', leads: 22, converted: 5, rate: 23 },
-];
-
 export default function LeadsPage() {
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [filterStage, setFilterStage] = useState('all');
+    const [isAddOpen, setIsAddOpen] = useState(false);
+
+    // New Lead Form
+    const [newLead, setNewLead] = useState({ name: '', phone: '', email: '', source: 'Walk-in' });
+
+    useEffect(() => {
+        fetchLeads();
+    }, []);
+
+    const fetchLeads = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/leads');
+            const data = await res.json();
+            if (Array.isArray(data)) setLeads(data);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load leads");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddLead = async () => {
+        if (!newLead.name) return toast.error("Name required");
+
+        try {
+            const res = await fetch('/api/leads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newLead)
+            });
+
+            if (res.ok) {
+                toast.success("Lead added successfully");
+                setIsAddOpen(false);
+                setNewLead({ name: '', phone: '', email: '', source: 'Walk-in' });
+                fetchLeads();
+            } else {
+                toast.error("Failed to add lead");
+            }
+        } catch (e) {
+            toast.error("Error creating lead");
+        }
+    };
 
     const filteredLeads = filterStage === 'all'
         ? leads
-        : leads.filter(l => l.stage.toLowerCase().replace(' ', '_') === filterStage);
+        : leads.filter(l => l.stage === filterStage);
+
+    // Funnel Data (Static for now, could be calculated)
+    const funnelData = [
+        { stage: 'New Lead', count: leads.filter(l => l.stage === 'New Lead').length, value: leads.filter(l => l.stage === 'New Lead').reduce((a, b) => a + (b.value || 0), 0), color: 'blue' },
+        { stage: 'Qualified', count: leads.filter(l => l.stage === 'Qualified').length, value: leads.filter(l => l.stage === 'Qualified').reduce((a, b) => a + (b.value || 0), 0), color: 'orange' },
+        { stage: 'Trial', count: leads.filter(l => l.stage === 'Trial').length, value: leads.filter(l => l.stage === 'Trial').reduce((a, b) => a + (b.value || 0), 0), color: 'green' },
+        { stage: 'Negotiation', count: leads.filter(l => l.stage === 'Negotiation').length, value: leads.filter(l => l.stage === 'Negotiation').reduce((a, b) => a + (b.value || 0), 0), color: 'yellow' },
+        { stage: 'Won', count: leads.filter(l => l.stage === 'Won').length, value: leads.filter(l => l.stage === 'Won').reduce((a, b) => a + (b.value || 0), 0), color: 'emerald' },
+    ];
+
+    const sourceAnalytics = [
+        { source: 'Instagram Ads', leads: 45, converted: 12, rate: 27 },
+        { source: 'Google Ads', leads: 38, converted: 8, rate: 21 },
+        { source: 'Referral', leads: 32, converted: 15, rate: 47 },
+        { source: 'Walk-in', leads: 28, converted: 10, rate: 36 },
+        { source: 'Facebook', leads: 22, converted: 5, rate: 23 },
+    ];
 
     return (
         <div className="space-y-6">
@@ -81,28 +119,28 @@ export default function LeadsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard
                     title="Total Leads"
-                    value="71"
-                    subtitle="This month"
+                    value={leads.length.toString()}
+                    subtitle="All time"
                     trend="+18%"
                     color="blue"
                 />
                 <MetricCard
                     title="Conversion Rate"
-                    value="28%"
+                    value={`${leads.length > 0 ? Math.round((leads.filter(l => l.stage === 'Won').length / leads.length) * 100) : 0}%`}
                     subtitle="Lead → Member"
                     trend="+5%"
                     color="green"
                 />
                 <MetricCard
                     title="Pipeline Value"
-                    value="₹4.4L"
+                    value={`₹${(leads.reduce((a, b) => a + (b.value || 0), 0) / 1000).toFixed(1)}L`}
                     subtitle="Potential revenue"
                     trend="+12%"
                     color="purple"
                 />
                 <MetricCard
                     title="Avg Lead Score"
-                    value="72"
+                    value={leads.length > 0 ? Math.round(leads.reduce((a, b) => a + (b.score || 0), 0) / leads.length).toString() : '0'}
                     subtitle="AI-calculated"
                     trend="+3"
                     color="orange"
@@ -178,10 +216,11 @@ export default function LeadsPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">All Stages</SelectItem>
-                                        <SelectItem value="new_lead">New Lead</SelectItem>
-                                        <SelectItem value="qualified">Qualified</SelectItem>
-                                        <SelectItem value="trial">Trial</SelectItem>
-                                        <SelectItem value="negotiation">Negotiation</SelectItem>
+                                        <SelectItem value="New Lead">New Lead</SelectItem>
+                                        <SelectItem value="Qualified">Qualified</SelectItem>
+                                        <SelectItem value="Trial">Trial</SelectItem>
+                                        <SelectItem value="Negotiation">Negotiation</SelectItem>
+                                        <SelectItem value="Won">Won</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -190,6 +229,9 @@ export default function LeadsPage() {
 
                     {/* Lead Cards */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {loading && <div className="col-span-2 text-center py-4">Loading leads...</div>}
+                        {!loading && filteredLeads.length === 0 && <div className="col-span-2 text-center py-4 text-gray-500">No leads found.</div>}
+
                         {filteredLeads.map((lead) => (
                             <LeadCard
                                 key={lead.id}

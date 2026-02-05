@@ -22,62 +22,62 @@ export default function AIWorkoutPage() {
     const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
     const [isResting, setIsResting] = useState(false);
 
-    // Mock Member ID (In real app, get from Auth Context)
-    const MEMBER_ID = 'mock-member-id-1';
+    const [memberId, setMemberId] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchWorkout();
+        const storedId = localStorage.getItem('gymflow_member_id');
+        if (!storedId) {
+            router.push('/mobile/login');
+            return;
+        }
+        setMemberId(storedId);
+        fetchWorkout(storedId);
     }, []);
 
-    const fetchWorkout = async () => {
+    const fetchWorkout = async (id: string) => {
         try {
             setLoading(true);
-            const data = await db.workouts.getByMember(MEMBER_ID);
+            const data = await db.workouts.getByMember(id);
             if (data) {
                 setWorkout(data);
             }
         } catch (error) {
             console.error(error);
-            toast.error("Could not load your workout plan.");
+            // Don't toast error on initial load if just empty
         } finally {
             setLoading(false);
         }
     };
 
     const generateNewWorkout = async () => {
+        if (!memberId) return;
         setLoading(true);
 
-        // Simulation of AI Generation
-        setTimeout(async () => {
-            const newWorkout: Partial<DbAiWorkout> = {
-                member_id: MEMBER_ID,
-                goal: 'Muscle Gain',
-                duration: 45,
-                risk_level: 'low',
-                status: 'pending',
-                ai_notes: 'Based on your recent attendance, I recommend a moderate intensity Hypertrophy session. Avoid heavy loads on knees.',
-                plan_data: [
-                    { name: 'Warmup: Jump Rope', sets: 1, reps: '3 mins', rest: 60, met: 8.0 },
-                    { name: 'Barbell Squats', sets: 4, reps: '10-12', rest: 90, met: 5.0 },
-                    { name: 'Bench Press', sets: 3, reps: '8-10', rest: 90, met: 4.5 },
-                    { name: 'Lat Pulldowns', sets: 3, reps: '12', rest: 60, met: 4.0 },
-                    { name: 'Dumbbell Lunges', sets: 3, reps: '12/leg', rest: 60, met: 5.5 },
-                    { name: 'Plank', sets: 3, reps: '45 sec', rest: 45, met: 3.5 },
-                    { name: 'Cooldown: Stretching', sets: 1, reps: '5 mins', rest: 0, met: 2.0 },
-                ]
-            };
+        try {
+            const res = await fetch('/api/ai/generate-workout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    memberId,
+                    goal: 'Muscle Gain', // You could add a UI selector for this
+                    duration: 45
+                })
+            });
 
-            try {
-                await db.workouts.create(newWorkout);
-                await fetchWorkout(); // Refresh
-                toast.success('AI Plan Generated! Waiting for trainer approval.');
-            } catch (e) {
-                console.error(e);
-                toast.error("Failed to save workout request.");
-            } finally {
-                setLoading(false);
+            const result = await res.json();
+
+            if (result.success) {
+                setWorkout(result.data); // Update local state immediately
+                toast.success('AI Plan Generated! Coach insight ready.');
+            } else {
+                toast.error("AI Error: " + result.error);
             }
-        }, 2000);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to generate workout.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const startWorkout = () => {

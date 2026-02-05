@@ -105,7 +105,7 @@ export default function PaymentsPage() {
                                         <p className="text-sm text-gray-500">
                                             <span className="font-mono text-gray-700 font-medium">UTR: {p.transaction_id}</span>
                                             <span className="mx-2">•</span>
-                                            Member ID: {p.member_id.substring(0, 8)}...
+                                            {p.members?.name || 'Unknown Member'} ({p.members?.email})
                                         </p>
                                         <p className="text-xs text-gray-400 mt-1">
                                             {format(new Date(p.created_at), 'MMM d, yyyy h:mm a')}

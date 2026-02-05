@@ -10,65 +10,48 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 
-export default function LoginPage() {
+export default function SignupPage() {
     const router = useRouter();
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [gymName, setGymName] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const [error, setError] = useState<string | null>(null);
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        full_name: name,
+                        gym_name: gymName,
+                    },
+                },
             });
 
             if (error) {
-                console.error('Login error:', error);
-                setError(error.message);
-                toast.error("Login Failed: " + error.message);
+                console.error('Signup error:', error);
+                toast.error("Signup Failed: " + error.message);
                 return;
             }
 
-            if (!member.approved) {
-                await supabase.auth.signOut();
-                toast.error("Your account is pending approval by an administrator.");
-                return;
+            if (data.user) {
+                toast.success("Account created! Please check your email to confirm.");
+                // Optional: Redirect to a confirmation page or login
+                router.push('/login');
             }
-
-            toast.success("Welcome back! Successfully logged in.");
-
-            // Save session for Mobile App (persists user context)
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('gymflow_member_id', member.id); // Not available in 'user' obj from auth.signIn
-                // We fetched 'member' above, but we only selected 'approved, role'.
-                // We need to verify if 'name' was selected. 
-                // Wait, the previous tool call selected 'approved, role'.
-                // I need to change the select in the query OR just save what we have.
-                // Let's assume we update the query below to include 'id, name'.
-            }
-
-            // Redirect based on Role
-            if (member.role === 'admin' || member.role === 'owner') {
-                router.push('/dashboard');
-            } else {
-                // Ideally this happens inside the component, but we need to ensure the data is fetched.
-                // Let's fix the query first in this same block.
-            }
-
-            router.refresh();
         } catch (err) {
-            setError('An unexpected error occurred');
+            toast.error('An unexpected error occurred');
         } finally {
             setLoading(false);
         }
@@ -94,14 +77,41 @@ export default function LoginPage() {
                         </svg>
                     </div>
                     <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        GymFlow AI
+                        Start Free Trial
                     </CardTitle>
                     <CardDescription className="text-base">
-                        Transform your gym revenue with AI-powered insights
+                        Join GymFlow AI and transform your gym today
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleLogin} className="space-y-5">
+                    <form onSubmit={handleSignup} className="space-y-5">
+                        <div className="space-y-2">
+                            <Label htmlFor="name" className="text-sm font-medium">
+                                Full Name
+                            </Label>
+                            <Input
+                                id="name"
+                                type="text"
+                                placeholder="John Doe"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                                className="h-11"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="gymName" className="text-sm font-medium">
+                                Gym Name (Optional)
+                            </Label>
+                            <Input
+                                id="gymName"
+                                type="text"
+                                placeholder="Spartan Gym"
+                                value={gymName}
+                                onChange={(e) => setGymName(e.target.value)}
+                                className="h-11"
+                            />
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-sm font-medium">
                                 Email Address
@@ -123,34 +133,27 @@ export default function LoginPage() {
                             <Input
                                 id="password"
                                 type="password"
-                                placeholder="••••••••"
+                                placeholder="Min 6 characters"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                minLength={6}
                                 className="h-11"
                             />
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" className="rounded" />
-                                <span className="text-gray-600">Remember me</span>
-                            </label>
-                            <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
-                                Forgot password?
-                            </a>
-                        </div>
+
                         <Button
                             type="submit"
                             className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg"
                             disabled={loading}
                         >
-                            {loading ? 'Signing in...' : 'Sign In'}
+                            {loading ? 'Creating Account...' : 'Create Account'}
                         </Button>
                     </form>
                     <div className="mt-6 text-center text-sm text-gray-600">
-                        Don't have an account?{' '}
-                        <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-semibold">
-                            Start Free Trial
+                        Already have an account?{' '}
+                        <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
+                            Sign In
                         </Link>
                     </div>
                 </CardContent>

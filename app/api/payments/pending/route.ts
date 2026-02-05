@@ -5,7 +5,14 @@ export async function GET() {
     try {
         const { data, error } = await supabase
             .from('payments')
-            .select('*')
+            .select(`
+                *,
+                members (
+                    id,
+                    name,
+                    email
+                )
+            `)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
 

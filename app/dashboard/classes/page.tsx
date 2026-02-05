@@ -70,7 +70,10 @@ export default function ClassesPage() {
                         </h1>
                         <p className="text-gray-600 mt-1">Manage classes, bookings, and schedules</p>
                     </div>
-                    <Button className="bg-gradient-to-r from-orange-600 to-red-600">
+                    <Button
+                        className="bg-gradient-to-r from-orange-600 to-red-600"
+                        onClick={() => window.location.href = '/dashboard/schedule'}
+                    >
                         + Create New Class
                     </Button>
                 </div>

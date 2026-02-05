@@ -11,50 +11,42 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
-// Mock analytics data
-const revenueData = [
-    { month: 'Jul', revenue: 235000, forecast: 240000, newMembers: 18, churn: 8 },
-    { month: 'Aug', revenue: 245000, forecast: 250000, newMembers: 22, churn: 12 },
-    { month: 'Sep', revenue: 252000, forecast: 258000, newMembers: 25, churn: 10 },
-    { month: 'Oct', revenue: 268000, forecast: 270000, newMembers: 28, churn: 9 },
-    { month: 'Nov', revenue: 275000, forecast: 280000, newMembers: 24, churn: 8 },
-    { month: 'Dec', revenue: 282000, forecast: 290000, newMembers: 30, churn: 7 },
-    { month: 'Jan', revenue: 289950, forecast: 298000, newMembers: 27, churn: 5 },
-    { month: 'Feb', forecast: 310000 },
-    { month: 'Mar', forecast: 325000 },
-];
-
-const memberGrowth = [
-    { week: 'Week 1', active: 185, inactive: 15, newSignups: 8 },
-    { week: 'Week 2', active: 188, inactive: 12, newSignups: 6 },
-    { week: 'Week 3', active: 192, inactive: 8, newSignups: 9 },
-    { week: 'Week 4', active: 200, inactive: 7, newSignups: 12 },
-];
-
-const classPerformance = [
-    { class: 'HIIT', attendance: 92, capacity: 95, revenue: 48000 },
-    { class: 'Yoga', attendance: 78, capacity: 85, revenue: 35000 },
-    { class: 'Spin', attendance: 88, capacity: 90, revenue: 42000 },
-    { class: 'CrossFit', attendance: 65, capacity: 70, revenue: 52000 },
-    { class: 'Pilates', attendance: 55, capacity: 60, revenue: 28000 },
-];
-
-const revenueBySource = [
-    { name: 'Memberships', value: 289950, color: '#8b5cf6' },
-    { name: 'PT Sessions', value: 125000, color: '#ec4899' },
-    { name: 'Products', value: 343000, color: '#3b82f6' },
-    { name: 'Classes', value: 205000, color: '#10b981' },
-];
-
-const retentionData = [
-    { cohort: 'Jan 2025', month1: 100, month2: 88, month3: 82, month4: 78, month5: 75, month6: 72 },
-    { cohort: 'Feb 2025', month1: 100, month2: 90, month3: 85, month4: 80, month5: 77, month6: 74 },
-    { cohort: 'Mar 2025', month1: 100, month2: 92, month3: 87, month4: 83, month5: 79 },
-    { cohort: 'Apr 2025', month1: 100, month2: 94, month3: 89, month4: 85 },
-];
-
 export default function AnalyticsPage() {
     const [timeRange, setTimeRange] = useState('6m');
+    const [loading, setLoading] = useState(true);
+
+    // State for Charts
+    const [revenueData, setRevenueData] = useState<any[]>([]);
+    const [memberGrowth, setMemberGrowth] = useState<any[]>([]);
+    const [revenueBySource, setRevenueBySource] = useState<any[]>([]);
+    const [classPerformance, setClassPerformance] = useState<any[]>([]);
+    const [retentionData, setRetentionData] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const res = await fetch('/api/analytics');
+                const result = await res.json();
+
+                if (result.success) {
+                    setRevenueData(result.data.revenueData);
+                    setMemberGrowth(result.data.memberGrowth);
+                    setRevenueBySource(result.data.revenueBySource);
+                    setClassPerformance(result.data.classPerformance);
+                    setRetentionData(result.data.retentionData);
+                }
+            } catch (error) {
+                console.error("Error loading analytics:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchAnalytics();
+    }, []);
+
+    if (loading) return <div className="p-8 text-center text-gray-500">Loading analytics...</div>;
+
 
     return (
         <div className="space-y-6">

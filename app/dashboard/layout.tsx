@@ -15,10 +15,12 @@ const navigation = [
     { name: 'Campaigns', href: '/dashboard/campaigns', icon: '📢' },
     { name: 'Upsell Automation', href: '/dashboard/upsell', icon: '💎' },
     { name: 'Products', href: '/dashboard/products', icon: '🛍️' },
+    { name: 'Equipment', href: '/dashboard/equipment', icon: '🔧' },
     { name: 'ROI Calculator', href: '/dashboard/roi-calculator', icon: '💰' },
     { name: 'Trainers', href: '/dashboard/trainers', icon: '💪' },
     { name: 'Analytics', href: '/dashboard/analytics', icon: '📈' },
     { name: 'Reports', href: '/dashboard/reports', icon: '📄' },
+    { name: 'Payments', href: '/dashboard/payments', icon: '💳' },
     { name: 'AI Trainer', href: '/dashboard/ai-trainer', icon: '🤖' },
     { name: 'Settings', href: '/dashboard/settings', icon: '⚙️' },
 ];
