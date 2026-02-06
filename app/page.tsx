@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Activity, Users, BarChart3, ShieldCheck, Smartphone, Brain, Utensils, Zap, Trophy, CreditCard } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
   const container = {
@@ -50,9 +51,12 @@ export default function LandingPage() {
               <Link href="/login" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
                 Sign In
               </Link>
-              <Button asChild size="sm" className="bg-white text-black hover:bg-neutral-200 rounded-full px-6">
-                <Link href="/login">Get Started</Link>
-              </Button>
+              <Link
+                href="/login"
+                className={cn(buttonVariants({ size: "sm" }), "bg-white text-black hover:bg-neutral-200 rounded-full px-6")}
+              >
+                Get Started
+              </Link>
             </div>
           </div>
         </header>
