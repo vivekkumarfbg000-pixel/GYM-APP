@@ -169,3 +169,39 @@ export function Shimmer() {
         <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
     );
 }
+
+export function ProfileSkeleton() {
+    return (
+        <div className="min-h-screen bg-gray-50 pb-24">
+            {/* Header Skeleton */}
+            <div className="h-48 bg-gradient-to-br from-blue-600 to-indigo-700 animate-pulse relative"></div>
+
+            {/* Profile Info Card Skeleton */}
+            <div className="px-6 -mt-16 relative z-10">
+                <div className="bg-white rounded-3xl shadow-lg p-6 text-center animate-pulse">
+                    <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto -mt-16 mb-4 border-4 border-white"></div>
+                    <div className="h-6 bg-gray-200 rounded w-48 mx-auto mb-2"></div>
+                    <div className="h-4 bg-gray-100 rounded w-32 mx-auto mb-6"></div>
+
+                    <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-6">
+                        <div className="space-y-2">
+                            <div className="h-5 bg-gray-200 rounded w-20 mx-auto"></div>
+                            <div className="h-2 bg-gray-100 rounded w-full"></div>
+                        </div>
+                        <div className="space-y-2">
+                            <div className="h-5 bg-gray-200 rounded w-16 mx-auto"></div>
+                            <div className="h-3 bg-gray-100 rounded w-12 mx-auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Menu Skeleton */}
+            <div className="px-6 mt-6 space-y-3">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 h-16 animate-pulse"></div>
+                ))}
+            </div>
+        </div>
+    );
+}

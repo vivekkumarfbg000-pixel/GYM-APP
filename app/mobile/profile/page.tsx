@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Settings, Medal, LogOut, ChevronRight, MapPin, Phone, Mail, Award, TrendingUp, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { MobileDashboardSkeleton } from '@/components/shared/skeleton-loaders';
+import { ProfileSkeleton } from '@/components/shared/skeleton-loaders';
 
 export default function MobileProfile() {
     const router = useRouter();
@@ -43,7 +43,7 @@ export default function MobileProfile() {
         router.push('/mobile/login');
     };
 
-    if (loading) return <MobileDashboardSkeleton />;
+    if (loading) return <ProfileSkeleton />;
 
     if (!member) return null;
 
