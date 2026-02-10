@@ -128,8 +128,18 @@ export default function DietCoachPage() {
         setInput('');
         setLoading(true);
 
+        // Add empty assistant message for streaming
+        const assistantId = (Date.now() + 1).toString();
+        const emptyAssistantMsg: Message = {
+            id: assistantId,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date()
+        };
+        setMessages(prev => [...prev, emptyAssistantMsg]);
+
         try {
-            const res = await fetch('/api/member/diet/chat', {
+            const response = await fetch('/api/member/diet/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -138,24 +148,70 @@ export default function DietCoachPage() {
                 })
             });
 
-            const data = await res.json();
-
-            if (data.success) {
-                const aiMsg: Message = {
-                    id: (Date.now() + 1).toString(),
-                    role: 'assistant',
-                    content: data.reply,
-                    timestamp: new Date()
-                };
-                setMessages(prev => [...prev, aiMsg]);
-            } else {
-                throw new Error(data.error);
+            if (!response.ok) {
+                throw new Error('Failed to connect');
             }
+
+            // Handle streaming response
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6).trim();
+
+                        if (data === '[DONE]') {
+                            setLoading(false);
+                            break;
+                        }
+
+                        try {
+                            const parsed = JSON.parse(data);
+
+                            if (parsed.error) {
+                                throw new Error(parsed.error);
+                            }
+
+                            if (parsed.chunk) {
+                                fullResponse += parsed.chunk;
+
+                                // Update the assistant message with streaming content
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === assistantId
+                                        ? { ...msg, content: fullResponse }
+                                        : msg
+                                ));
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON chunks
+                            if (data !== '[DONE]') {
+                                console.warn('Failed to parse chunk:', data);
+                            }
+                        }
+                    }
+                }
+            }
+
         } catch (error) {
             console.error(error);
-            // Fallback
+            setLoading(false);
+
+            //  Remove the empty assistant message and add error message
+            setMessages(prev => prev.filter(msg => msg.id !== assistantId));
             setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
+                id: (Date.now() + 2).toString(),
                 role: 'assistant',
                 content: "Sorry, I'm having trouble connecting to the server. Please try again later.",
                 timestamp: new Date()

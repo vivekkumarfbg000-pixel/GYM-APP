@@ -125,10 +125,47 @@ export async function POST(request: NextRequest) {
         // Return success with member data (excluding password)
         const { password: _, ...memberWithoutPassword } = data as any;
 
+        // Send welcome notifications (non-blocking)
+        try {
+            const { sendWelcomeEmail } = await import('@/lib/email');
+            const { sendWelcomeWhatsApp } = await import('@/lib/whatsapp');
+
+            // Get gym name (use default or fetch from gym_owner)
+            const gymName = process.env.GYM_NAME || 'GymFlow AI';
+
+            // Send email notification
+            const emailResult = await sendWelcomeEmail({
+                memberEmail: body.email,
+                memberName: body.name,
+                password: body.password, // Plain password (before hashing)
+                gymName
+            });
+
+            // Send WhatsApp notification if phone number provided
+            if (body.phone) {
+                const whatsappResult = await sendWelcomeWhatsApp({
+                    phoneNumber: body.phone,
+                    memberName: body.name,
+                    email: body.email,
+                    password: body.password,
+                    gymName
+                });
+            }
+
+            // Log notification results but don't fail member creation
+            console.log('Welcome notifications sent:', {
+                email: emailResult.success,
+                whatsapp: body.phone ? 'attempted' : 'skipped'
+            });
+        } catch (notifError) {
+            // Log but don't fail the member creation
+            console.warn('Failed to send welcome notifications:', notifError);
+        }
+
         return NextResponse.json({
             success: true,
             data: memberWithoutPassword,
-            message: 'Member created successfully. Share the password with them.'
+            message: 'Member created successfully. Welcome notifications sent.'
         }, { status: 201 });
     } catch (error: any) {
         console.error('Unexpected error in POST /api/members:', error);
