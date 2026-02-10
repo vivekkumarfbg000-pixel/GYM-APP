@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
     try {
@@ -18,9 +19,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // 2. Check Password (Simple check for MVP)
-        // In production, use bcrypt.compare(password, user.password)
-        if ((user as any).password !== password) {
+        // 2. Verify hashed password using bcrypt
+        const storedPassword = (user as any).password;
+        if (!storedPassword) {
+            return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, storedPassword);
+        if (!isPasswordValid) {
             return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
         }
 

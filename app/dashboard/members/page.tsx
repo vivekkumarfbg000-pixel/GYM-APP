@@ -50,10 +50,11 @@ export default function MembersPage() {
     };
 
     // Form state for adding/editing member
-    const [formData, setFormData] = useState<Partial<Member>>({
+    const [formData, setFormData] = useState<Partial<Member> & { password?: string }>({
         name: '',
         email: '',
         phone: '',
+        password: '',
         membershipType: 'Basic Monthly',
         segment: 'Regular'
     });
@@ -172,8 +173,15 @@ export default function MembersPage() {
     };
 
     const handleAddMember = async () => {
-        if (!formData.name || !formData.email) {
-            toast.error('Name and email are required');
+        if (!formData.name || !formData.email || !formData.password) {
+            toast.error('Name, email, and password are required');
+            return;
+        }
+
+        // Get gym owner ID from localStorage
+        const gymOwnerId = localStorage.getItem('gymflow_owner_id');
+        if (!gymOwnerId) {
+            toast.error('Please login as gym owner first');
             return;
         }
 
@@ -185,6 +193,8 @@ export default function MembersPage() {
                     name: formData.name,
                     email: formData.email,
                     phone: formData.phone || '',
+                    password: formData.password, // Send plain password, API will hash it
+                    gym_owner_id: gymOwnerId, // Link to gym owner
                     membership_type: formData.membershipType || 'Basic Monthly',
                     membership_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     segment: formData.segment || 'Regular'
@@ -197,7 +207,9 @@ export default function MembersPage() {
                 throw new Error(result.error || 'Failed to add member');
             }
 
-            toast.success(`${formData.name} added successfully!`);
+            // Show success with password reminder
+            toast.success(`${formData.name} added! Password: ${formData.password}`, { duration: 10000 });
+            toast.info(`Share password '${formData.password}' with ${formData.name}`, { duration: 10000 });
             setIsAddDialogOpen(false);
             resetForm();
             loadMembers(); // Reload to get fresh data
@@ -248,6 +260,7 @@ export default function MembersPage() {
             name: '',
             email: '',
             phone: '',
+            password: '',
             membershipType: 'Basic Monthly',
             segment: 'Regular'
         });
@@ -337,6 +350,30 @@ export default function MembersPage() {
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     placeholder="+91 98765 43210"
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Password *</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="password"
+                                        type="text"
+                                        value={formData.password || ''}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        placeholder="Create password for member"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).toUpperCase().slice(-4);
+                                            setFormData({ ...formData, password: randomPassword });
+                                            toast.success('Password generated!');
+                                        }}
+                                    >
+                                        Generate
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-gray-500">This password will be shared with the member to login</p>
                             </div>
                             <div>
                                 <Label htmlFor="membership">Membership Type</Label>

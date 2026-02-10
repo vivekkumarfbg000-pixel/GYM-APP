@@ -51,12 +51,15 @@ export default function LandingPage() {
               <Link href="/login" className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
                 Sign In
               </Link>
-              <Link
-                href="/login"
-                className={cn(buttonVariants({ size: "sm" }), "bg-white text-black hover:bg-neutral-200 rounded-full px-6")}
+              <Button
+                asChild
+                size="sm"
+                className="bg-white text-black hover:bg-neutral-200 rounded-full px-6"
               >
-                Get Started
-              </Link>
+                <Link href="/login">
+                  Get Started
+                </Link>
+              </Button>
             </div>
           </div>
         </header>

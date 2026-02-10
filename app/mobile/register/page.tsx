@@ -1,163 +1,77 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { UserPlus, Loader2 } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserPlus, ShieldAlert, AlertCircle } from 'lucide-react';
 
 export default function MobileRegisterPage() {
-    const [form, setForm] = useState({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        age: '',
-        gymPassword: ''
-    });
-    const [loading, setLoading] = useState(false);
-    const router = useRouter();
-
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-
-        try {
-            const res = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
-                    password: form.password,
-                    phone: form.phone,
-                    age: form.age ? parseInt(form.age) : null,
-                    gymPassword: form.gymPassword
-                })
-            });
-
-            const data = await res.json();
-
-            if (data.success) {
-                toast.success('Registration successful! Please wait for gym owner approval.');
-                // Redirect to pending screen or login with message
-                router.push('/mobile/login?registered=true');
-            } else {
-                toast.error(data.error || 'Registration failed');
-            }
-        } catch (error) {
-            toast.error('Something went wrong');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     return (
-        <div className="min-h-screen bg-white flex flex-col px-6 py-12">
-            <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-                <div className="mb-8">
-                    <div className="h-12 w-12 bg-blue-100 rounded-2xl flex items-center justify-center mb-4 text-blue-600">
-                        <UserPlus size={24} />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center space-y-4">
+                    <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                        <ShieldAlert className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-                    <p className="text-gray-500">Join your gym to track your fitness journey.</p>
-                </div>
+                    <CardTitle className="text-2xl">Registration Disabled</CardTitle>
+                    <CardDescription className="text-base">
+                        Member registration is managed by gym owners
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium text-blue-900">
+                                    How to Get Access
+                                </p>
+                                <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
+                                    <li>Visit your gym in person</li>
+                                    <li>Ask the gym owner to create your member account</li>
+                                    <li>Receive your login credentials (email + password)</li>
+                                    <li>Use those credentials to login to the app</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
 
-                <form onSubmit={handleRegister} className="space-y-4">
-                    <div>
-                        <Label htmlFor="name">Full Name *</Label>
-                        <Input
-                            id="name"
-                            placeholder="Full Name"
-                            className="bg-gray-50 border-gray-100 h-12 mt-1"
-                            value={form.name}
-                            onChange={e => setForm({ ...form, name: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="Email Address"
-                            className="bg-gray-50 border-gray-100 h-12 mt-1"
-                            value={form.email}
-                            onChange={e => setForm({ ...form, email: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <Label htmlFor="phone">Phone Number *</Label>
-                            <Input
-                                id="phone"
-                                type="tel"
-                                placeholder="Phone Number"
-                                className="bg-gray-50 border-gray-100 h-12 mt-1"
-                                value={form.phone}
-                                onChange={e => setForm({ ...form, phone: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="age">Age *</Label>
-                            <Input
-                                id="age"
-                                type="number"
-                                placeholder="Age"
-                                className="bg-gray-50 border-gray-100 h-12 mt-1"
-                                value={form.age}
-                                onChange={e => setForm({ ...form, age: e.target.value })}
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <Label htmlFor="gymPassword">Gym Password *</Label>
-                        <Input
-                            id="gymPassword"
-                            type="text"
-                            placeholder="Ask your gym owner for this"
-                            className="bg-gray-50 border-gray-100 h-12 mt-1"
-                            value={form.gymPassword}
-                            onChange={e => setForm({ ...form, gymPassword: e.target.value.toUpperCase() })}
-                            required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            Enter the password provided by your gym owner to connect your account
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p className="text-sm text-gray-700 text-center">
+                            <strong>Already have credentials?</strong>
+                            <br />
+                            Login with the email and password provided by your gym owner
                         </p>
                     </div>
-                    <div>
-                        <Label htmlFor="password">Create Password *</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            placeholder="Create Password"
-                            className="bg-gray-50 border-gray-100 h-12 mt-1"
-                            value={form.password}
-                            onChange={e => setForm({ ...form, password: e.target.value })}
-                            required
-                        />
+
+                    <div className="space-y-3">
+                        <Button
+                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            asChild
+                        >
+                            <Link href="/mobile/login">
+                                Go to Login
+                            </Link>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            asChild
+                        >
+                            <Link href="/">
+                                Back to Home
+                            </Link>
+                        </Button>
                     </div>
 
-                    <Button type="submit" className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 mt-4" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin" /> : 'Sign Up'}
-                    </Button>
-                </form>
-
-                <div className="mt-8 text-center">
-                    <p className="text-gray-500 text-sm">
-                        Already have an account?{' '}
-                        <Link href="/mobile/login" className="text-blue-600 font-bold hover:underline">
-                            Log In
-                        </Link>
-                    </p>
-                </div>
-            </div>
+                    <div className="pt-4 border-t border-gray-200">
+                        <p className="text-xs text-center text-gray-500">
+                            💡 <strong>Why this change?</strong> Gym-owner managed registration ensures better security and member verification.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }

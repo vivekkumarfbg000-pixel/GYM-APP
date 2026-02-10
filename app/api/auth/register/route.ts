@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/supabase';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
     try {
@@ -34,7 +35,11 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // 4. Create new member linked to gym owner
+        // 4. Hash password for secure storage
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        // 5. Create new member linked to gym owner
         const data = await db.members.create({
             name,
             email,
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
             join_date: new Date().toISOString(),
             membership_type: 'Pending', // Will be set by gym owner upon approval
             segment: 'New', // New members start in 'New' segment
-            password // Password field (should be hashed in production)
+            password: hashedPassword // Securely hashed password
         } as any); // Using 'as any' because password is not in DbMember type definition
 
         return NextResponse.json({

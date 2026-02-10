@@ -51,27 +51,52 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
 
-        // Validate required fields
-        if (!body.name || !body.email || !body.membership_type) {
+        // Validate required fields (now including password and gym_owner_id)
+        if (!body.name || !body.email || !body.membership_type || !body.password || !body.gym_owner_id) {
             return NextResponse.json(
-                { success: false, error: 'Name, email, and membership type are required' },
+                { success: false, error: 'Name, email, membership type, password, and gym owner ID are required' },
                 { status: 400 }
             );
         }
+
+        // Check if member with this email already exists
+        const { data: existing } = await supabase
+            .from('members')
+            .select('email')
+            .eq('email', body.email)
+            .maybeSingle();
+
+        if (existing) {
+            return NextResponse.json(
+                { success: false, error: 'A member with this email already exists' },
+                { status: 409 }
+            );
+        }
+
+        // Hash password for secure storage
+        const bcrypt = require('bcryptjs');
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(body.password, saltRounds);
 
         // Prepare member data
         const memberData = {
             name: body.name,
             email: body.email,
             phone: body.phone || '',
+            password: hashedPassword, // Store hashed password
+            gym_owner_id: body.gym_owner_id, // Link to gym owner
             membership_type: body.membership_type,
             membership_end_date: body.membership_end_date || null,
-            segment: body.segment || 'Regular',
+            segment: body.segment || 'New',
             engagement_score: body.engagement_score || 50,
             churn_risk: body.churn_risk || 30,
             check_in_frequency: body.check_in_frequency || 0,
             total_revenue: body.total_revenue || 0,
-            pt_sessions: body.pt_sessions || 0
+            pt_sessions: body.pt_sessions || 0,
+            status: 'Active', // New members are active by default
+            approved: true, // Auto-approved since gym owner creates them
+            role: 'member',
+            join_date: new Date().toISOString()
         };
 
         const { data, error } = await supabase
@@ -97,9 +122,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Return success with member data (excluding password)
+        const { password: _, ...memberWithoutPassword } = data as any;
+
         return NextResponse.json({
             success: true,
-            data: data
+            data: memberWithoutPassword,
+            message: 'Member created successfully. Share the password with them.'
         }, { status: 201 });
     } catch (error: any) {
         console.error('Unexpected error in POST /api/members:', error);
