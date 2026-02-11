@@ -10,8 +10,13 @@ const getSupabaseAnonKey = () => {
     const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bWxqbWFjeG5rZ2VvZXdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjMzMDYsImV4cCI6MjA4NTU5OTMwNn0.IDNKUTKLPsahV59wdcFx1COuqKer5zAg8zJfVM0m4Yc';
 
-    // If env key is missing or looks like a service key (starts with sb_ or contains service_role), use hardcoded fallback
-    if (!envKey || envKey.includes('service_role') || envKey.startsWith('sb_secret') || envKey.startsWith('service_role')) {
+    // If env key is missing or looks like a service key
+    // We check for "service_role" in plain text AND Base64 ("c2VydmljZV9yb2xl")
+    // or if it starts with "sb_secret" which is the new Supabase secret key format
+    if (!envKey ||
+        envKey.includes('service_role') ||
+        envKey.includes('c2VydmljZV9yb2xl') ||
+        envKey.startsWith('sb_secret')) {
         console.warn('⚠️ Invalid or unsafe NEXT_PUBLIC_SUPABASE_ANON_KEY detected. Falling back to safe key.');
         return hardcodedKey;
     }
