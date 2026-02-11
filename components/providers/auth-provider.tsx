@@ -27,32 +27,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     // Valid fallback key to prevent "Forbidden use of secret API key" error
-    // Valid fallback key to prevent "Forbidden use of secret API key" error
     const getSafeKey = () => {
-        const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bWxqbWFjeG5rZ2VvZXdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjMzMDYsImV4cCI6MjA4NTU5OTMwNn0.IDNKUTKLPsahV59wdcFx1COuqKer5zAg8zJfVM0m4Yc';
-
-        // We check for "service_role" in plain text AND Base64 ("c2VydmljZV9yb2xl")
-        if (!envKey ||
-            envKey.includes('service_role') ||
-            envKey.includes('c2VydmljZV9yb2xl') ||
-            envKey.startsWith('sb_secret')) {
-            return hardcodedKey;
-        }
-        return envKey;
+        // FORCE SAFE KEY
+        return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bWxqbWFjeG5rZ2VvZXdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjMzMDYsImV4cCI6MjA4NTU5OTMwNn0.IDNKUTKLPsahV59wdcFx1COuqKer5zAg8zJfVM0m4Yc';
     };
 
     const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
         getSafeKey()
     );
 
     useEffect(() => {
         const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                if (error) {
+                    console.warn('Auth session error:', error.message);
+                }
+                setSession(data?.session ?? null);
+                setUser(data?.session?.user ?? null);
+            } catch (err) {
+                console.error('Unexpected auth error:', err);
+            } finally {
+                setLoading(false);
+            }
         };
 
         getSession();
