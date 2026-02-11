@@ -5,6 +5,7 @@ import { Send, User, Bot, Sparkles, ChevronLeft, ArrowUp, Calendar, Utensils, Sh
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { DietSkeleton } from '@/components/shared/skeleton-loaders';
 
 type Message = {
     id: string;
@@ -26,6 +27,7 @@ export default function DietCoachPage() {
         }
     ]);
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     // Diet Plan State
     const [dietPlan, setDietPlan] = useState<any>(null);
@@ -47,19 +49,18 @@ export default function DietCoachPage() {
     };
 
     useEffect(() => {
-        fetchHistory();
-    }, []);
+        const init = async () => {
+            if (MEMBER_ID) {
+                await Promise.all([fetchHistory(), fetchDietPlan()]);
+            }
+            setInitialLoading(false);
+        };
+        init();
+    }, [MEMBER_ID]);
 
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
-
-    useEffect(() => {
-        if (MEMBER_ID) {
-            fetchHistory();
-            fetchDietPlan();
-        }
-    }, [MEMBER_ID]);
 
     const fetchDietPlan = async () => {
         try {
@@ -227,6 +228,8 @@ export default function DietCoachPage() {
         "Diet for muscle gain",
         "Pre-workout snack ideas"
     ];
+
+    if (initialLoading) return <DietSkeleton />;
 
     return (
         <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50">

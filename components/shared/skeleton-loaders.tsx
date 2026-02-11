@@ -205,3 +205,53 @@ export function ProfileSkeleton() {
         </div>
     );
 }
+
+export function MobileMapSkeleton() {
+    return (
+        <div className="h-[calc(100vh-64px)] relative flex flex-col bg-gray-50 animate-pulse">
+            <div className="flex-1 bg-gray-200 relative">
+                <div className="absolute top-4 right-4 bg-white/50 w-32 h-10 rounded-full"></div>
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 w-24 h-24 bg-blue-200/50 rounded-[2.5rem]"></div>
+            </div>
+            <div className="bg-white px-6 pb-20 pt-8 rounded-t-[2.5rem] relative -mt-6">
+                <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-8"></div>
+                <div className="grid grid-cols-3 gap-8 mb-8 text-center">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="flex flex-col items-center gap-2">
+                            <div className="h-4 w-8 bg-gray-100 rounded"></div>
+                            <div className="h-6 w-12 bg-gray-200 rounded"></div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export function DietSkeleton() {
+    return (
+        <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 animate-pulse">
+            <div className="bg-white px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+                <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                <div className="h-6 w-32 bg-gray-200 rounded"></div>
+            </div>
+            <div className="flex-1 p-4 space-y-4">
+                <div className="flex gap-3">
+                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                    <div className="h-16 w-48 bg-gray-100 rounded-2xl rounded-tl-none"></div>
+                </div>
+                <div className="flex gap-3 flex-row-reverse">
+                    <div className="h-8 w-8 bg-blue-100 rounded-full"></div>
+                    <div className="h-10 w-40 bg-blue-50 rounded-2xl rounded-tr-none"></div>
+                </div>
+                <div className="flex gap-3">
+                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                    <div className="h-24 w-64 bg-gray-100 rounded-2xl rounded-tl-none"></div>
+                </div>
+            </div>
+            <div className="p-4 bg-white border-t border-gray-100">
+                <div className="h-11 bg-gray-100 rounded-2xl"></div>
+            </div>
+        </div>
+    );
+}

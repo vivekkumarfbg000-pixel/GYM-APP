@@ -1,36 +1,75 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import { withErrorHandler, ApiErrors } from '@/lib/api-error-handler';
 
-export async function GET(req: Request) {
+// GET: Fetch active challenges for  a gym
+async function handler(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const gymOwnerId = searchParams.get('gymOwnerId');
+
+    if (!gymOwnerId) {
+        throw ApiErrors.badRequest('Gym Owner ID is required');
+    }
+
     try {
-        const { searchParams } = new URL(req.url);
-        const memberId = searchParams.get('memberId');
+        const { data: challenges, error } = await supabase
+            .from('challenges')
+            .select('*, challenge_participants(count)')
+            .eq('gym_owner_id', gymOwnerId)
+            .eq('is_active', true)
+            .gte('end_date', new Date().toISOString().split('T')[0])
+            .order('start_date', { ascending: false });
 
-        const challenges = await db.community.getChallenges();
+        if (error) throw error;
 
-        let memberProgress: any[] = [];
-        if (memberId) {
-            memberProgress = await db.community.getMemberChallenges(memberId);
-        }
-
-        const formatted = challenges.map((c: any) => {
-            const progress = memberProgress.find(p => p.challenge_id === c.id);
-            const daysLeft = Math.ceil((new Date(c.end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
-
-            return {
-                id: c.id,
-                title: c.title,
-                goal: `${c.goal_target} ${c.goal_type}`,
-                total: c.goal_target,
-                daysLeft: daysLeft > 0 ? daysLeft : 0,
-                joined: !!progress,
-                progress: progress?.progress || 0
-            };
+        return NextResponse.json({
+            success: true,
+            data: challenges
         });
-
-        return NextResponse.json(formatted);
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: 'Failed to fetch challenges' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Failed to fetch challenges:', error);
+        throw ApiErrors.internal('Failed to fetch challenges');
     }
 }
+
+// POST: Create a new challenge
+async function postHandler(req: NextRequest) {
+    const body = await req.json();
+    const { gymOwnerId, name, description, type, targetValue, startDate, endDate, prizeDescription } = body;
+
+    if (!gymOwnerId || !name || !type || !targetValue || !startDate || !endDate) {
+        throw ApiErrors.badRequest('Missing required fields');
+    }
+
+    try {
+        const { data: challenge, error } = await supabase
+            .from('challenges')
+            .insert([{
+                gym_owner_id: gymOwnerId,
+                name,
+                description,
+                type,
+                target_value: targetValue,
+                start_date: startDate,
+                end_date: endDate,
+                prize_description: prizeDescription,
+                is_active: true
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return NextResponse.json({
+            success: true,
+            data: challenge,
+            message: 'Challenge created successfully!'
+        });
+    } catch (error: any) {
+        console.error('Challenge creation failed:', error);
+        throw ApiErrors.internal('Failed to create challenge');
+    }
+}
+
+export const GET = withErrorHandler(handler);
+export const POST = withErrorHandler(postHandler);

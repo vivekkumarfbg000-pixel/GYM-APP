@@ -2,14 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { db } from '@/lib/supabase';
+import { db, supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -21,11 +20,6 @@ export default function LoginPage() {
     const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
-
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
 
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,6 +53,8 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
+            console.log('🔐 Starting login process for:', email);
+
             // Step 1: Try Supabase Auth login
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
@@ -66,27 +62,45 @@ export default function LoginPage() {
             });
 
             if (authError) {
-                console.error('Supabase login error:', authError);
-                toast.error(authError.message || 'Invalid login credentials');
+                console.error('❌ Supabase Auth Error:', {
+                    message: authError.message,
+                    status: authError.status,
+                    name: authError.name,
+                });
+
+                // Provide more specific error messages
+                if (authError.message.includes('Invalid login credentials')) {
+                    toast.error('Invalid email or password. Please check your credentials.');
+                } else if (authError.message.includes('Email not confirmed')) {
+                    toast.error('Please confirm your email address before logging in.');
+                } else {
+                    toast.error(authError.message || 'Login failed. Please try again.');
+                }
                 setLoading(false);
                 return;
             }
 
             if (!authData?.user) {
+                console.error('❌ No user data returned from Supabase');
                 toast.error('Login failed. Please try again.');
                 setLoading(false);
                 return;
             }
 
+            console.log('✅ Supabase Auth successful, user ID:', authData.user.id);
+
             // Step 2: Fetch gym owner from database using email
-            // We rely on the email matching between Auth and DB
+            console.log('🔍 Fetching gym owner profile from database...');
             const gymOwner = await db.gymOwners.getByEmail(email);
 
             if (!gymOwner) {
-                toast.error('Account found but no Gym Profile associated. Please contact support.');
+                console.error('❌ No gym owner profile found for email:', email);
+                toast.error('Account found but no Gym Profile associated. Please contact support or sign up first.');
                 setLoading(false);
                 return;
             }
+
+            console.log('✅ Gym owner profile found:', gymOwner.id);
 
             // Save gym owner session data
             if (typeof window !== 'undefined') {
@@ -94,15 +108,21 @@ export default function LoginPage() {
                 localStorage.setItem('gymflow_owner_name', gymOwner.name);
                 localStorage.setItem('gymflow_owner_email', gymOwner.email);
                 localStorage.setItem('gymflow_gym_password', gymOwner.gym_password);
+                console.log('✅ Session data saved to localStorage');
             }
 
             toast.success(`Welcome back, ${gymOwner.name}!`);
+            console.log('✅ Login complete, redirecting to dashboard...');
             router.push('/dashboard');
             router.refresh();
 
         } catch (err: any) {
-            console.error('Login error:', err);
-            toast.error('An unexpected error occurred. Please try again.');
+            console.error('❌ Unexpected login error:', {
+                message: err.message,
+                stack: err.stack,
+                error: err
+            });
+            toast.error(err.message || 'An unexpected error occurred. Please try again.');
         } finally {
             setLoading(false);
         }

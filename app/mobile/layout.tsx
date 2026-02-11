@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Activity, User, Dumbbell, Users } from 'lucide-react';
-import Link from 'next/link';
 import { useAuth } from '@/components/providers/auth-provider';
+import { BottomNav } from '@/components/mobile/bottom-nav';
 
 export default function MemberLayout({
     children,
@@ -41,45 +40,7 @@ export default function MemberLayout({
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-                <div className="max-w-md mx-auto grid grid-cols-4 h-16">
-                    <Link
-                        href="/mobile/dashboard"
-                        className={`flex flex-col items-center justify-center space-y-1 ${pathname === '/mobile/dashboard' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                    >
-                        <Home size={24} />
-                        <span className="text-xs">Home</span>
-                    </Link>
-
-                    <Link
-                        href="/mobile/workout"
-                        className={`flex flex-col items-center justify-center space-y-1 ${pathname === '/mobile/workout' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                    >
-                        <Activity size={24} />
-                        <span className="text-xs">Track</span>
-                    </Link>
-
-                    <Link
-                        href="/mobile/diet"
-                        className={`flex flex-col items-center justify-center space-y-1 ${pathname === '/mobile/diet' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                    >
-                        <Dumbbell size={24} />
-                        <span className="text-xs">Coach</span>
-                    </Link>
-
-                    <Link
-                        href="/mobile/community"
-                        className={`flex flex-col items-center justify-center space-y-1 ${pathname === '/mobile/community' ? 'text-blue-600' : 'text-gray-500'
-                            }`}
-                    >
-                        <Users size={24} /> // Using Users icon from lucide-react (ensure import)
-                        <span className="text-xs">Community</span>
-                    </Link>
-                </div>
-            </nav>
+            <BottomNav />
         </div>
     );
 }

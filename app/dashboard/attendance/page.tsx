@@ -9,29 +9,46 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { mockMembers, type Member } from '@/lib/mock-data';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { LoadingState } from '@/components/shared/loading-state';
 import { EmptyState } from '@/components/shared/error-state';
 
+// Types
+interface Member {
+    id: string;
+    name: string;
+    email: string;
+    membershipType?: string;
+    segment?: string;
+    engagementScore?: number;
+    checkInFrequency?: number;
+}
+
 interface AttendanceRecord {
     id: string;
-    memberId: string;
-    memberName: string;
-    checkIn: string;
-    checkOut?: string;
-    duration?: string;
+    member_id: string;
+    check_in: string;
+    check_out?: string;
+    duration?: number;
+    members?: {
+        name: string;
+        email: string;
+        segment: string;
+    };
 }
 
 export default function AttendancePage() {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord[]>([]);
     const [scanMode, setScanMode] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Member[]>([]);
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+    const [processingId, setProcessingId] = useState<string | null>(null);
 
-    const currentCapacity = todayAttendance.filter(a => !a.checkOut).length;
-    const maxCapacity = 250;
+    // Derived metrics
+    const currentCapacity = todayAttendance.filter(a => !a.check_out).length;
+    const maxCapacity = 250; // Could be a setting
     const capacityPercent = Math.round((currentCapacity / maxCapacity) * 100);
     const totalCheckins = todayAttendance.length;
 
@@ -40,19 +57,46 @@ export default function AttendancePage() {
         loadTodayAttendance();
     }, []);
 
-    const loadTodayAttendance = async () => {
-        setLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 300));
+    // Search members when query changes
+    useEffect(() => {
+        const searchMembers = async () => {
+            if (!searchQuery || searchQuery.length < 2) {
+                setSearchResults([]);
+                return;
+            }
 
-        // Create some mock attendance records
-        const mockAttendance: AttendanceRecord[] = [
-            { id: '1', memberId: '1', memberName: 'Rahul Sharma', checkIn: '06:15 AM', checkOut: '07:30 AM', duration: '1h 15m' },
-            { id: '2', memberId: '3', memberName: 'Amit Kumar', checkIn: '07:00 AM', duration: 'Active' },
-            { id: '3', memberId: '5', memberName: 'Vikram Singh', checkIn: '08:30 AM', checkOut: '09:45 AM', duration: '1h 15m' },
-            { id: '4', memberId: '8', memberName: 'Kavya Iyer', checkIn: '09:00 AM', duration: 'Active' },
-        ];
-        setTodayAttendance(mockAttendance);
-        setLoading(false);
+            try {
+                const res = await fetch(`/api/members?query=${encodeURIComponent(searchQuery)}`);
+                const data = await res.json();
+                if (data.success) {
+                    setSearchResults(data.data);
+                }
+            } catch (error) {
+                console.error('Error searching members:', error);
+            }
+        };
+
+        const timeoutId = setTimeout(searchMembers, 300);
+        return () => clearTimeout(timeoutId);
+    }, [searchQuery]);
+
+    const loadTodayAttendance = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch('/api/attendance');
+            const data = await res.json();
+
+            if (data.success) {
+                setTodayAttendance(data.data);
+            } else {
+                toast.error('Failed to load attendance');
+            }
+        } catch (error) {
+            console.error('Error loading attendance:', error);
+            toast.error('Network error loading data');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleQuickCheckIn = async () => {
@@ -61,78 +105,92 @@ export default function AttendancePage() {
             return;
         }
 
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        try {
+            setProcessingId('checkin');
+            const res = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ member_id: selectedMember.id })
+            });
 
-        const newRecord: AttendanceRecord = {
-            id: `att-${Date.now()}`,
-            memberId: selectedMember.id,
-            memberName: selectedMember.name,
-            checkIn: timeString,
-            duration: 'Active'
-        };
+            const data = await res.json();
 
-        setTodayAttendance([newRecord, ...todayAttendance]);
-        toast.success(`✅ ${selectedMember.name} checked in at ${timeString}`, {
-            description: 'Welcome to the gym!'
-        });
-
-        setSelectedMember(null);
-        setSearchQuery('');
-    };
-
-    const handleScanCheckIn = (memberId: string) => {
-        const member = mockMembers.find(m => m.id === memberId);
-        if (!member) {
-            toast.error('Member not found');
-            return;
-        }
-
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-        const newRecord: AttendanceRecord = {
-            id: `att-${Date.now()}`,
-            memberId: member.id,
-            memberName: member.name,
-            checkIn: timeString,
-            duration: 'Active'
-        };
-
-        setTodayAttendance([newRecord, ...todayAttendance]);
-        toast.success(`✅ ${member.name} checked in!`);
-        setScanMode(false);
-    };
-
-    const handleCheckOut = (recordId: string, memberName: string) => {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-        setTodayAttendance(todayAttendance.map(record => {
-            if (record.id === recordId) {
-                // Calculate duration (simplified)
-                return {
-                    ...record,
-                    checkOut: timeString,
-                    duration: '1h 15m' // Simplified calculation
-                };
+            if (data.success) {
+                toast.success(`✅ ${selectedMember.name} checked in!`);
+                // Refresh list
+                loadTodayAttendance();
+                // Reset form
+                setSelectedMember(null);
+                setSearchQuery('');
+                setSearchResults([]);
+            } else {
+                toast.error(data.error || 'Check-in failed');
             }
-            return record;
-        }));
-
-        toast.success(`👋 ${memberName} checked out at ${timeString}`, {
-            description: 'Great workout!'
-        });
+        } catch (error) {
+            console.error('Check-in error:', error);
+            toast.error('An error occurred during check-in');
+        } finally {
+            setProcessingId(null);
+        }
     };
 
-    const filteredMembers = searchQuery
-        ? mockMembers.filter(m =>
-            m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            m.email.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : [];
+    const handleScanCheckIn = async (memberId: string) => {
+        try {
+            const res = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ member_id: memberId })
+            });
 
-    // Analytics data
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success(`✅ Check-in successful!`);
+                loadTodayAttendance();
+                setScanMode(false);
+            } else {
+                toast.error(data.error || 'Check-in failed');
+            }
+        } catch (error) {
+            console.error('Scan check-in error:', error);
+            toast.error('An error occurred during scan');
+        }
+    };
+
+    const handleCheckOut = async (recordId: string, memberName: string) => {
+        try {
+            setProcessingId(recordId);
+            const res = await fetch('/api/attendance', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: recordId })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success(`👋 ${memberName} checked out!`);
+                // Update local state to avoid full reload flickers
+                setTodayAttendance(prev => prev.map(record =>
+                    record.id === recordId
+                        ? { ...record, check_out: new Date().toISOString(), duration: data.data.duration }
+                        : record
+                ));
+            } else {
+                toast.error(data.error || 'Check-out failed');
+            }
+        } catch (error) {
+            console.error('Check-out error:', error);
+            toast.error('An error occurred during check-out');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    // Calculate analytics from today's data (simplified for now)
+    const activeCheckins = todayAttendance.filter(a => !a.check_out);
+
+    // Mock data for charts (until we have historical API)
     const peakHoursData = [
         { hour: '5 AM', count: 12 },
         { hour: '6 AM', count: 28 },
@@ -161,10 +219,6 @@ export default function AttendancePage() {
         { name: 'Occasional', count: 52, color: '#f59e0b' },
         { name: 'Rare', count: 25, color: '#ef4444' },
     ];
-
-    const inactiveMembers = mockMembers
-        .filter(m => m.churnRisk > 60)
-        .slice(0, 5);
 
     if (loading && todayAttendance.length === 0) {
         return <LoadingState message="Loading attendance data..." />;
@@ -226,17 +280,17 @@ export default function AttendancePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-blue-600">{totalCheckins}</div>
-                        <p className="text-xs text-gray-500 mt-2">+12% vs yesterday</p>
+                        <p className="text-xs text-gray-500 mt-2">Live Count</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-gray-600">Avg. Duration</CardTitle>
+                        <CardTitle className="text-sm font-medium text-gray-600">Active Now</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-purple-600">1h 22m</div>
-                        <p className="text-xs text-gray-500 mt-2">Today's average</p>
+                        <div className="text-3xl font-bold text-purple-600">{activeCheckins.length}</div>
+                        <p className="text-xs text-gray-500 mt-2">Members working out</p>
                     </CardContent>
                 </Card>
 
@@ -246,7 +300,7 @@ export default function AttendancePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold text-orange-600">6 PM</div>
-                        <p className="text-xs text-gray-500 mt-2">52 members</p>
+                        <p className="text-xs text-gray-500 mt-2">Historical Avg</p>
                     </CardContent>
                 </Card>
             </div>
@@ -265,7 +319,7 @@ export default function AttendancePage() {
                         <CardContent>
                             <div className="flex gap-4">
                                 <Input
-                                    placeholder="Enter Member ID (1-8)..."
+                                    placeholder="Enter Member ID (UUID)..."
                                     className="flex-1"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
@@ -307,19 +361,20 @@ export default function AttendancePage() {
                                 />
 
                                 {/* Member Search Results */}
-                                {searchQuery && filteredMembers.length > 0 && (
+                                {searchQuery && searchResults.length > 0 && !selectedMember && (
                                     <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                        {filteredMembers.slice(0, 5).map(member => (
+                                        {searchResults.map(member => (
                                             <div
                                                 key={member.id}
                                                 className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                                                 onClick={() => {
                                                     setSelectedMember(member);
                                                     setSearchQuery(member.name);
+                                                    setSearchResults([]);
                                                 }}
                                             >
                                                 <p className="font-medium">{member.name}</p>
-                                                <p className="text-sm text-gray-500">{member.email} • {member.membershipType}</p>
+                                                <p className="text-sm text-gray-500">{member.email}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -331,62 +386,29 @@ export default function AttendancePage() {
                                     <div className="flex items-start justify-between mb-2">
                                         <div>
                                             <p className="font-semibold text-lg">{selectedMember.name}</p>
-                                            <p className="text-sm text-gray-600">{selectedMember.membershipType}</p>
+                                            <p className="text-sm text-gray-600">{selectedMember.email}</p>
                                         </div>
                                         <Badge className="bg-green-100 text-green-700">
-                                            {selectedMember.segment}
+                                            {selectedMember.segment || 'Member'}
                                         </Badge>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                                        <div>
-                                            <span className="text-gray-500">Engagement:</span>
-                                            <span className="ml-1 font-medium">{selectedMember.engagementScore}/100</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">Check-ins/week:</span>
-                                            <span className="ml-1 font-medium">{selectedMember.checkInFrequency.toFixed(1)}</span>
-                                        </div>
                                     </div>
                                 </div>
                             )}
 
                             <Button
                                 onClick={handleQuickCheckIn}
-                                disabled={!selectedMember}
+                                disabled={!selectedMember || processingId === 'checkin'}
                                 className="w-full bg-gradient-to-r from-green-600 to-blue-600"
                                 size="lg"
                             >
-                                <span className="mr-2">✅</span> Check In Member
+                                {processingId === 'checkin' ? 'Checking In...' : (
+                                    <>
+                                        <span className="mr-2">✅</span> Check In Member
+                                    </>
+                                )}
                             </Button>
                         </CardContent>
                     </Card>
-
-                    {/* Inactive Members Alert */}
-                    {inactiveMembers.length > 0 && (
-                        <Card className="border-orange-200 bg-orange-50">
-                            <CardHeader>
-                                <CardTitle className="text-orange-900 flex items-center gap-2">
-                                    <span>⚠️</span> Inactive Members Alert
-                                </CardTitle>
-                                <CardDescription>Members who haven't checked in recently</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2">
-                                    {inactiveMembers.map(member => (
-                                        <div key={member.id} className="flex items-center justify-between p-3 bg-white rounded-lg">
-                                            <div>
-                                                <p className="font-medium">{member.name}</p>
-                                                <p className="text-sm text-gray-500">
-                                                    Last check-in: {Math.floor(Math.random() * 15 + 5)} days ago
-                                                </p>
-                                            </div>
-                                            <Badge variant="destructive">High Risk</Badge>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
                 </TabsContent>
 
                 {/* Today's Log */}
@@ -408,23 +430,24 @@ export default function AttendancePage() {
                                     {todayAttendance.map(record => (
                                         <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                                             <div className="flex-1">
-                                                <p className="font-medium">{record.memberName}</p>
+                                                <p className="font-medium">{record.members?.name || 'Unknown Member'}</p>
                                                 <p className="text-sm text-gray-500">
-                                                    Check-in: {record.checkIn}
-                                                    {record.checkOut && ` • Check-out: ${record.checkOut}`}
+                                                    Check-in: {new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {record.check_out && ` • Check-out: ${new Date(record.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <Badge variant={record.checkOut ? 'secondary' : 'default'}>
-                                                    {record.duration}
+                                                <Badge variant={record.check_out ? 'secondary' : 'default'}>
+                                                    {record.check_out ? `${record.duration}m` : 'Active'}
                                                 </Badge>
-                                                {!record.checkOut && (
+                                                {!record.check_out && (
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        onClick={() => handleCheckOut(record.id, record.memberName)}
+                                                        onClick={() => handleCheckOut(record.id, record.members?.name || 'Member')}
+                                                        disabled={processingId === record.id}
                                                     >
-                                                        Check Out
+                                                        {processingId === record.id ? '...' : 'Check Out'}
                                                     </Button>
                                                 )}
                                             </div>
@@ -442,7 +465,7 @@ export default function AttendancePage() {
                         {/* Peak Hours */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Peak Hours</CardTitle>
+                                <CardTitle>Peak Hours (Mock Data)</CardTitle>
                                 <CardDescription>Hourly distribution of check-ins</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -461,7 +484,7 @@ export default function AttendancePage() {
                         {/* Weekly Trend */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Weekly Trend</CardTitle>
+                                <CardTitle>Weekly Trend (Mock Data)</CardTitle>
                                 <CardDescription>Check-ins by day of week</CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -480,7 +503,7 @@ export default function AttendancePage() {
                         {/* Visit Frequency */}
                         <Card className="md:col-span-2">
                             <CardHeader>
-                                <CardTitle>Member Visit Frequency</CardTitle>
+                                <CardTitle>Member Visit Frequency (Mock Data)</CardTitle>
                                 <CardDescription>Distribution of member activity levels</CardDescription>
                             </CardHeader>
                             <CardContent>
