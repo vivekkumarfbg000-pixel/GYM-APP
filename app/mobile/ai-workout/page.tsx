@@ -240,11 +240,11 @@ export default function AIWorkoutPage() {
             {/* Start Button */}
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
                 <button
-                    onClick={() => toast.success("Workout Started! (Tracking implementation coming in v2.1)")}
+                    onClick={() => router.push('/mobile/workout/session')}
                     className="w-full bg-white text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
                     <Dumbbell className="w-5 h-5" />
-                    Start Review Session
+                    Start Gym Session
                 </button>
             </div>
 

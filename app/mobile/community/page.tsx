@@ -283,8 +283,51 @@ export default function CommunityPage() {
         }
     };
 
+    const [showDuelModal, setShowDuelModal] = useState(false);
+    const [duelConfig, setDuelConfig] = useState({
+        opponentEmail: '',
+        title: 'Battle Royale',
+        target: 500, // calories or points
+        days: 3
+    });
+
+    const handleCreateDuel = async () => {
+        if (!memberId || !duelConfig.opponentEmail) return;
+        setPosting(true);
+        try {
+            // First find opponent by email (mock search for now or real if API exists)
+            // For MVP we just creaet the challenge directly with the email as a placeholder or fail
+
+            const res = await fetch('/api/gamification/duels/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    creatorId: memberId,
+                    opponentEmail: duelConfig.opponentEmail,
+                    title: duelConfig.title,
+                    target: duelConfig.target,
+                    duration: duelConfig.days
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success('Duel Challenge Sent! ⚔️');
+                setShowDuelModal(false);
+                loadData(memberId);
+            } else {
+                toast.error(data.error || 'User not found');
+            }
+        } catch (error) {
+            toast.error('Failed to create duel');
+        } finally {
+            setPosting(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 pb-24 animate-in fade-in duration-300">
+        <div className="min-h-screen bg-gray-50 pb-24 animate-in fade-in duration-300 relative">
             {/* Header */}
             <div className="bg-white sticky top-0 z-10 border-b border-gray-100 shadow-sm">
                 <div className="px-4 py-4 flex items-center justify-between">
@@ -312,7 +355,7 @@ export default function CommunityPage() {
                     <>
                         {activeTab === 'feed' && <CommunityFeedSkeleton />}
                         {activeTab === 'leaderboard' && <LeaderboardSkeleton />}
-                        {activeTab === 'challenges' && (
+                        {(activeTab === 'challenges' || activeTab === 'duels') && (
                             <div className="space-y-4">
                                 {[1, 2].map(i => (
                                     <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm animate-pulse">
@@ -399,10 +442,10 @@ export default function CommunityPage() {
                                                             key={option.id}
                                                             onClick={() => handleVote(poll.id, option.id)}
                                                             className={`w-full text-left p-3 rounded-xl transition-all relative overflow-hidden ${isVoted
-                                                                    ? 'bg-indigo-600 text-white shadow-md'
-                                                                    : userVoted
-                                                                        ? 'bg-white/50 text-gray-600 cursor-default'
-                                                                        : 'bg-white hover:bg-indigo-100 text-gray-700 hover:shadow-sm active:scale-98'
+                                                                ? 'bg-indigo-600 text-white shadow-md'
+                                                                : userVoted
+                                                                    ? 'bg-white/50 text-gray-600 cursor-default'
+                                                                    : 'bg-white hover:bg-indigo-100 text-gray-700 hover:shadow-sm active:scale-98'
                                                                 }`}
                                                             disabled={!!userVoted}
                                                         >
@@ -625,7 +668,10 @@ export default function CommunityPage() {
                                 <div className="bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl p-6 text-white text-center shadow-lg shadow-red-200">
                                     <h2 className="text-2xl font-bold mb-2">⚔️ Gym Battle Arena</h2>
                                     <p className="text-white/90 mb-4 text-sm">Challenge a friend to a 1v1 duel!</p>
-                                    <Button className="bg-white text-red-600 hover:bg-gray-100 w-full rounded-full font-bold">
+                                    <Button
+                                        onClick={() => setShowDuelModal(true)}
+                                        className="bg-white text-red-600 hover:bg-gray-100 w-full rounded-full font-bold"
+                                    >
                                         Start a Duel
                                     </Button>
                                 </div>
@@ -656,6 +702,67 @@ export default function CommunityPage() {
                             </div>
                         )}
                     </>
+                )}
+
+                {/* DUEL MODAL */}
+                {showDuelModal && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden">
+                            <div className="bg-gradient-to-r from-red-500 to-orange-600 p-6 text-white text-center">
+                                <h3 className="text-xl font-bold">New Challenge</h3>
+                                <p className="text-white/80 text-sm">Challenge a rival to a duel</p>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 uppercase">Opponent Email</label>
+                                    <input
+                                        type="email"
+                                        className="w-full mt-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-red-200"
+                                        placeholder="friend@email.com"
+                                        value={duelConfig.opponentEmail}
+                                        onChange={e => setDuelConfig(c => ({ ...c, opponentEmail: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Target (Cal/Pts)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-red-200"
+                                            value={duelConfig.target}
+                                            onChange={e => setDuelConfig(c => ({ ...c, target: parseInt(e.target.value) }))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase">Duration (Days)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full mt-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-red-200"
+                                            value={duelConfig.days}
+                                            onChange={e => setDuelConfig(c => ({ ...c, days: parseInt(e.target.value) }))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        className="flex-1"
+                                        onClick={() => setShowDuelModal(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                        onClick={handleCreateDuel}
+                                        disabled={posting || !duelConfig.opponentEmail}
+                                    >
+                                        {posting ? 'Sending...' : 'Send Challenge'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

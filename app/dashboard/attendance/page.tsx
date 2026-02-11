@@ -52,12 +52,32 @@ export default function AttendancePage() {
     const capacityPercent = Math.round((currentCapacity / maxCapacity) * 100);
     const totalCheckins = todayAttendance.length;
 
+    const [analyticsData, setAnalyticsData] = useState({
+        peakHours: [],
+        weeklyTrend: [],
+        visitFrequency: []
+    });
+
     // Load initial data
     useEffect(() => {
         loadTodayAttendance();
+        loadAnalytics();
     }, []);
 
-    // Search members when query changes
+    // ... (search effect remains same)
+
+    const loadAnalytics = async () => {
+        try {
+            const res = await fetch('/api/analytics');
+            const data = await res.json();
+            if (data.success) {
+                setAnalyticsData(data.data);
+            }
+        } catch (error) {
+            console.error('Failed to load analytics', error);
+        }
+    };
+
     useEffect(() => {
         const searchMembers = async () => {
             if (!searchQuery || searchQuery.length < 2) {
@@ -465,12 +485,12 @@ export default function AttendancePage() {
                         {/* Peak Hours */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Peak Hours (Mock Data)</CardTitle>
-                                <CardDescription>Hourly distribution of check-ins</CardDescription>
+                                <CardTitle>Peak Hours</CardTitle>
+                                <CardDescription>Hourly distribution of check-ins (Last 30 Days)</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={200}>
-                                    <BarChart data={peakHoursData}>
+                                    <BarChart data={analyticsData.peakHours.length > 0 ? analyticsData.peakHours : []}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="hour" />
                                         <YAxis />
@@ -484,12 +504,12 @@ export default function AttendancePage() {
                         {/* Weekly Trend */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Weekly Trend (Mock Data)</CardTitle>
-                                <CardDescription>Check-ins by day of week</CardDescription>
+                                <CardTitle>Weekly Trend</CardTitle>
+                                <CardDescription>Check-ins by day of week (Last 7 Days)</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ResponsiveContainer width="100%" height={200}>
-                                    <LineChart data={weeklyTrend}>
+                                    <LineChart data={analyticsData.weeklyTrend.length > 0 ? analyticsData.weeklyTrend : []}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="day" />
                                         <YAxis />
@@ -503,12 +523,12 @@ export default function AttendancePage() {
                         {/* Visit Frequency */}
                         <Card className="md:col-span-2">
                             <CardHeader>
-                                <CardTitle>Member Visit Frequency (Mock Data)</CardTitle>
-                                <CardDescription>Distribution of member activity levels</CardDescription>
+                                <CardTitle>Member Visit Frequency</CardTitle>
+                                <CardDescription>Distribution of member activity levels (Last 30 Days)</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-3">
-                                    {visitFrequency.map(freq => (
+                                    {(analyticsData.visitFrequency.length > 0 ? analyticsData.visitFrequency : []).map((freq: any) => (
                                         <div key={freq.name}>
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="text-sm font-medium">{freq.name}</span>

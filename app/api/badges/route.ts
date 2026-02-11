@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { with ErrorHandler, ApiErrors } from '@/lib/api-error-handler';
+import { withErrorHandler, ApiErrors } from '@/lib/api-error-handler';
 import { emitToRoom } from '@/lib/socket';
 
 // GET: Fetch member's badges

@@ -1,90 +1,87 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { startOfDay, subDays, format, getHours, getDay } from 'date-fns';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
-        console.log("Fetching analytics...");
+        const today = new Date();
+        const thirtyDaysAgo = subDays(today, 30).toISOString();
 
-        // 1. Fetch Revenue Data (Last 6 months)
-        // Note: For a real production app with millions of rows, use a materialized view or RPC.
-        const { data: payments, error: paymentsError } = await supabase
-            .from('payments')
-            .select('amount, created_at, status')
-            .eq('status', 'completed')
-            .order('created_at', { ascending: true }); // Get all history for aggregation
+        // Fetch attendance for last 30 days
+        const { data: attendance, error } = await supabase
+            .from('attendance')
+            .select('check_in, member_id')
+            .gte('check_in', thirtyDaysAgo);
 
-        if (paymentsError) throw paymentsError;
+        if (error) throw error;
 
-        // Aggregate by month (JS side aggregation for simplicity in MVP)
-        const revenueMap: Record<string, number> = {};
-        payments?.forEach(p => {
-            const date = new Date(p.created_at);
-            const key = date.toLocaleString('default', { month: 'short' });
-            revenueMap[key] = (revenueMap[key] || 0) + Number(p.amount);
+        // 1. Peak Hours (Aggregate by hour of day)
+        const hoursMap = new Array(24).fill(0);
+        attendance.forEach((record: any) => {
+            const hour = getHours(new Date(record.check_in));
+            hoursMap[hour]++;
         });
 
-        // Format for Chart (Last 6 months mock windows if empty)
-        const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
-        const revenueData = months.map(m => ({
-            month: m,
-            revenue: revenueMap[m] || 0,
-            forecast: (revenueMap[m] || 0) * 1.1 // Mock forecast 10% growth
-        }));
+        // Format for Chart: "6 AM", "7 AM", etc.
+        const peakHoursData = hoursMap.map((count, hour) => {
+            const label = hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
+            return { hour: label, count };
+        }).filter((_, i) => i >= 5 && i <= 22); // Filter reasonable gym hours (5 AM - 10 PM)
 
+        // 2. Weekly Trend (Last 7 days)
+        const last7DaysMap = new Map();
+        for (let i = 6; i >= 0; i--) {
+            const date = subDays(today, i);
+            const dateStr = format(date, 'EEE'); // "Mon", "Tue"
+            last7DaysMap.set(dateStr, 0);
+        }
 
-        // 2. Fetch Members for Growth Logic
-        const { data: members, error: membersError } = await supabase
-            .from('members')
-            .select('created_at, status');
+        attendance.forEach((record: any) => {
+            const date = new Date(record.check_in);
+            // Check if within last 7 days
+            if (date >= subDays(today, 7)) {
+                const dayStr = format(date, 'EEE');
+                if (last7DaysMap.has(dayStr)) {
+                    last7DaysMap.set(dayStr, last7DaysMap.get(dayStr) + 1);
+                }
+            }
+        });
 
-        if (membersError) throw membersError;
+        const weeklyTrendData = Array.from(last7DaysMap.entries()).map(([day, visits]) => ({ day, visits }));
 
-        const activeCount = members?.filter(m => m.status === 'Active').length || 0;
-        const pendingCount = members?.filter(m => m.status === 'Pending').length || 0;
+        // 3. Visit Frequency (Member segmentation based on visits in last 30 days)
+        const memberVisits: Record<string, number> = {};
+        attendance.forEach((record: any) => {
+            memberVisits[record.member_id] = (memberVisits[record.member_id] || 0) + 1;
+        });
 
-        // Mock weekly breakdown since we might not have timestamps for all seed data
-        const memberGrowth = [
-            { week: 'Week 1', active: Math.floor(activeCount * 0.2), inactive: 2, newSignups: 1 },
-            { week: 'Week 2', active: Math.floor(activeCount * 0.4), inactive: 2, newSignups: 2 },
-            { week: 'Week 3', active: Math.floor(activeCount * 0.7), inactive: 3, newSignups: 4 },
-            { week: 'Week 4', active: activeCount, inactive: pendingCount, newSignups: 5 },
-        ];
+        let daily = 0, regular = 0, occasional = 0, rare = 0;
 
+        Object.values(memberVisits).forEach(count => {
+            if (count >= 20) daily++;
+            else if (count >= 12) regular++;
+            else if (count >= 4) occasional++;
+            else rare++;
+        });
 
-        // 3. Revenue by Source (Mock distribution based on totals)
-        const totalRevenue = Object.values(revenueMap).reduce((a, b) => a + b, 0);
-        const revenueBySource = [
-            { name: 'Memberships', value: totalRevenue * 0.8, color: '#8b5cf6' },
-            { name: 'PT Sessions', value: totalRevenue * 0.15, color: '#ec4899' },
-            { name: 'Products', value: totalRevenue * 0.05, color: '#3b82f6' },
+        const visitFrequencyData = [
+            { name: 'Daily (20+)', count: daily, color: '#10b981' }, // Green
+            { name: 'Regular (12-19)', count: regular, color: '#3b82f6' }, // Blue
+            { name: 'Occasional (4-11)', count: occasional, color: '#f59e0b' }, // Yellow
+            { name: 'Rare (1-3)', count: rare, color: '#ef4444' }, // Red
         ];
 
         return NextResponse.json({
             success: true,
             data: {
-                revenueData,
-                memberGrowth,
-                revenueBySource,
-                // Passing back existing mock data for things we don't have tables for yet (Classes)
-                classPerformance: [
-                    { class: 'HIIT', attendance: 92, capacity: 95, revenue: 48000 },
-                    { class: 'Yoga', attendance: 78, capacity: 85, revenue: 35000 },
-                    { class: 'Spin', attendance: 88, capacity: 90, revenue: 42000 },
-                ],
-                retentionData: [
-                    { cohort: 'Jan 2025', month1: 100, month2: 88, month3: 82 },
-                    { cohort: 'Feb 2025', month1: 100, month2: 90 },
-                ]
+                peakHours: peakHoursData,
+                weeklyTrend: weeklyTrendData,
+                visitFrequency: visitFrequencyData
             }
         });
 
     } catch (error: any) {
-        console.error('Error fetching analytics:', error);
-        return NextResponse.json(
-            { success: false, error: error.message },
-            { status: 500 }
-        );
+        console.error("Analytics API Error:", error);
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }

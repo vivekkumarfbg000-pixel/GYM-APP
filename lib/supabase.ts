@@ -110,16 +110,61 @@ export type DbProduct = {
     updated_at: string;
 };
 
+export type DbGym = {
+    id: string;
+    name: string;
+    address: string | null;
+    owner_id: string | null;
+    branding_color: string;
+    created_at: string;
+    updated_at: string;
+};
+
 export type DbTrainer = {
     id: string;
+    gym_id: string;
     name: string;
     email: string | null;
     phone: string | null;
-    specialization: string | null;
+    specialization: string; // Comma separated or JSON
     rating: number;
     sessions_conducted: number;
+    hourly_rate: number;
+    commission_rate: number;
+    bio: string | null;
+    availability: any; // JSONB
+    avatar_url: string | null;
     created_at: string;
     updated_at: string;
+};
+
+export type DbPtPackage = {
+    id: string;
+    gym_id: string;
+    name: string;
+    session_count: number;
+    price: number;
+    validity_days: number;
+    active: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+export type DbPtSession = {
+    id: string;
+    gym_id: string;
+    trainer_id: string;
+    member_id: string;
+    start_time: string;
+    end_time: string;
+    status: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
+    price_at_booking: number;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+    // Joins
+    trainer?: DbTrainer;
+    member?: DbMember;
 };
 
 export type DbAiWorkout = {
@@ -630,6 +675,78 @@ export const db = {
             }
         }
     },
+    gyms: {
+        get: async (id: string) => {
+            const { data, error } = await supabase
+                .from('gyms')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) throw error;
+            return data as DbGym;
+        },
+        create: async (gym: Partial<DbGym>) => {
+            const { data, error } = await supabase
+                .from('gyms')
+                .insert(gym)
+                .select()
+                .single();
+            if (error) throw error;
+            return data as DbGym;
+        }
+    },
+
+    trainers: {
+        getAll: async (gymId?: string) => {
+            let query = supabase.from('trainers').select('*');
+            if (gymId) query = query.eq('gym_id', gymId);
+
+            const { data, error } = await query.order('name');
+            if (error) throw error;
+            return data as DbTrainer[];
+        },
+        create: async (trainer: Partial<DbTrainer>) => {
+            const { data, error } = await supabase
+                .from('trainers')
+                .insert(trainer)
+                .select()
+                .single();
+            if (error) throw error;
+            return data as DbTrainer;
+        },
+        getSessions: async (trainerId: string, startDate?: string) => {
+            let query = supabase
+                .from('pt_sessions')
+                .select('*, member:members(name, email), trainer:trainers(name)')
+                .eq('trainer_id', trainerId);
+
+            if (startDate) query = query.gte('start_time', startDate);
+
+            const { data, error } = await query.order('start_time');
+            if (error) throw error;
+            return data as DbPtSession[];
+        }
+    },
+
+    pt: {
+        getPackages: async (gymId?: string) => {
+            let query = supabase.from('pt_packages').select('*').eq('active', true);
+            if (gymId) query = query.eq('gym_id', gymId);
+            const { data, error } = await query;
+            if (error) throw error;
+            return data as DbPtPackage[];
+        },
+        bookSession: async (session: Partial<DbPtSession>) => {
+            const { data, error } = await supabase
+                .from('pt_sessions')
+                .insert(session)
+                .select()
+                .single();
+            if (error) throw error;
+            return data as DbPtSession;
+        }
+    },
+
     gymOwners: {
         getAll: async () => {
             const { data, error } = await supabase

@@ -129,6 +129,15 @@ function MobileLoginContent() {
                         </div>
                     </div>
 
+                    <div className="flex justify-end">
+                        <Link
+                            href="/mobile/forgot-password"
+                            className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                        >
+                            Forgot Password?
+                        </Link>
+                    </div>
+
                     <Button
                         type="submit"
                         className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700"
