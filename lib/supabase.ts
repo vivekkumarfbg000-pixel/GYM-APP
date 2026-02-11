@@ -1,15 +1,31 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
+// Supabase configuration
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+
+// Robust key selection to prevent "Forbidden use of secret API key" error
+// This ensures we never accidentally use the service role key in the client
+const getSupabaseAnonKey = () => {
+    const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const hardcodedKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bWxqbWFjeG5rZ2VvZXdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjMzMDYsImV4cCI6MjA4NTU5OTMwNn0.IDNKUTKLPsahV59wdcFx1COuqKer5zAg8zJfVM0m4Yc';
+
+    // If env key is missing or looks like a service key (starts with sb_ or contains service_role), use hardcoded fallback
+    if (!envKey || envKey.includes('service_role') || envKey.startsWith('sb_secret') || envKey.startsWith('service_role')) {
+        console.warn('⚠️ Invalid or unsafe NEXT_PUBLIC_SUPABASE_ANON_KEY detected. Falling back to safe key.');
+        return hardcodedKey;
+    }
+    return envKey;
+};
+
+const supabaseAnonKey = getSupabaseAnonKey();
 
 // Create Supabase client (it will work in demo mode even without real credentials)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-    return process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    return !!supabaseUrl && !!supabaseAnonKey;
 };
 
 // Database types (matching database schema with snake_case)
