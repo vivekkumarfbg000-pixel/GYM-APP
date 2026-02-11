@@ -91,7 +91,7 @@ export default function GymSessionPage() {
     // Rest Timer
     useEffect(() => {
         let interval: NodeJS.Timeout;
-        if (isResting && restSeconds > 0) {
+        if (isResting) {
             interval = setInterval(() => {
                 setRestSeconds(prev => {
                     if (prev <= 1) {
@@ -106,7 +106,7 @@ export default function GymSessionPage() {
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isResting, restSeconds]);
+    }, [isResting]);
 
     const formatTime = (secs: number) => {
         const mins = Math.floor(secs / 60);

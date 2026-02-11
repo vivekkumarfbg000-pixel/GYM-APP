@@ -52,15 +52,18 @@ export default function CommunityPage() {
 
                     // Check which polls user has voted on
                     if (mid) {
-                        const voted: Record<string, string> = {};
-                        for (const poll of pollsData) {
-                            const voteRes = await fetch(`/api/community/polls/vote?pollId=${poll.id}&memberId=${mid}`);
-                            const voteData = await voteRes.json();
-                            if (voteData.voted) {
-                                voted[poll.id] = voteData.optionId;
+                        // Check which polls user has voted on (Bulk Fetch)
+                        if (mid) {
+                            try {
+                                const voteRes = await fetch(`/api/community/polls/vote?memberId=${mid}`);
+                                const voteData = await voteRes.json();
+                                if (voteData.votes) {
+                                    setVotedPolls(voteData.votes);
+                                }
+                            } catch (e) {
+                                console.error("Failed to load user votes", e);
                             }
                         }
-                        setVotedPolls(voted);
                     }
                 }
             }
@@ -396,7 +399,7 @@ export default function CommunityPage() {
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
                                         <div className="flex gap-2">
-                                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-orange-500" onClick={() => document.getElementById('post-image-url')?.focus()}>
+                                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-orange-500" onClick={() => document.getElementById('post-image-url')?.focus()} aria-label="Add image URL">
                                                 <Share2 size={16} />
                                             </Button>
                                             <Button variant="ghost" size="sm" className="text-gray-400 hover:text-blue-500" onClick={handleAiPost}>
@@ -572,6 +575,7 @@ export default function CommunityPage() {
                                                             handleComment(post.id, input.value);
                                                             input.value = '';
                                                         }}
+                                                        aria-label="Send comment"
                                                     >
                                                         <Send size={16} />
                                                     </Button>

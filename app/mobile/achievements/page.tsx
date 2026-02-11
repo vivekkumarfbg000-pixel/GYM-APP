@@ -59,7 +59,7 @@ export default function AchievementsPage() {
             if (profileData.success && workoutsData.success) {
                 const p = profileData.data;
                 const totalWorkouts = workoutsData.data.length;
-                const totalDistance = workoutsData.data.reduce((acc: number, cur: any) => acc + (cur.distance_meters || 0), 0);
+                const totalDistance = workoutsData.data.reduce((acc: number, cur: any) => acc + (cur.distance || cur.distance_meters || 0), 0);
 
                 // Calculate Stats
                 const currentStats = {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Play, TrendingUp, Calendar, Zap, MapPin, ChevronRight, Activity, CreditCard, CheckCircle, AlertCircle, X, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -93,8 +94,8 @@ export default function MobileDashboard() {
                 // Calculate totals
                 const totalStats = historyData.data.reduce((acc: any, curr: any) => ({
                     workouts: acc.workouts + 1,
-                    distance: acc.distance + (curr.distance_meters || 0),
-                    calories: acc.calories + (curr.calories_burned || 0)
+                    distance: acc.distance + (curr.distance || curr.distance_meters || 0),
+                    calories: acc.calories + (curr.calories || curr.calories_burned || 0)
                 }), { workouts: 0, distance: 0, calories: 0 });
 
                 setStats(totalStats);
@@ -153,16 +154,14 @@ export default function MobileDashboard() {
             <div className="bg-gradient-to-br from-blue-700 via-indigo-600 to-purple-700 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-indigo-200">
                 <div className="flex justify-between items-center mb-8">
                     <div className="flex items-center gap-3">
-                        import Image from 'next/image';
-
-                        // ... inside component ...
                         <div className="h-12 w-12 rounded-full border-2 border-white/30 shadow-lg overflow-hidden flex-shrink-0 relative">
                             <Image
                                 src="/logo.jpg"
                                 alt="Logo"
                                 fill
                                 className="object-cover"
-                                sizes="(max-width: 768px) 48px, 48px"
+                                sizes="48px"
+                                priority
                             />
                         </div>
                         <div>
@@ -281,6 +280,7 @@ export default function MobileDashboard() {
                         <button
                             onClick={() => setShowPayModal(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2"
+                            aria-label="Close modal"
                         >
                             <X size={24} />
                         </button>
@@ -338,11 +338,15 @@ export default function MobileDashboard() {
                                     <div className="bg-white p-2 rounded-xl w-40 h-40 mx-auto shadow-inner flex items-center justify-center">
                                         {/* Dynamic QR: Generates a UPI generic QR for demo. In prod, use specific VPA */}
                                         {/* Using a placeholder service for visual demo */}
-                                        <img
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=gymflow@upi&pn=GymFlow&am=2999&cu=INR`}
-                                            alt="UPI QR"
-                                            className="w-full h-full object-contain"
-                                        />
+                                        <div className="relative w-full h-full">
+                                            <Image
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=gymflow@upi&pn=GymFlow&am=2999&cu=INR`}
+                                                alt="UPI QR"
+                                                fill
+                                                className="object-contain"
+                                                unoptimized
+                                            />
+                                        </div>
                                     </div>
                                     <p className="font-bold text-xl mt-3">₹2,999</p>
                                 </div>

@@ -1,7 +1,8 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
 export const generateMonthlyReport = async (stats: any, period: string) => {
+    // Dynamic imports to reduce initial bundle size
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
     const doc = new jsPDF();
 
     // Title
