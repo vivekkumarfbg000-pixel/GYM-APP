@@ -123,10 +123,10 @@ export async function POST(request: NextRequest) {
             join_date: new Date().toISOString()
         };
 
-        // 4. Insert into Members Table (using Admin client to bypass any RLS that might block)
+        // 4. Upsert into Members Table (handling potential trigger-created records)
         const { data, error } = await supabaseAdmin
             .from('members')
-            .insert([memberData])
+            .upsert(memberData) // Upsert uses the PRIMARY KEY (id) to match
             .select()
             .single();
 

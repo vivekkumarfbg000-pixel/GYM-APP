@@ -44,8 +44,8 @@ export async function POST(request: Request) {
             }
         );
 
-        // 3. Check if Auth User already exists
-        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        // 3. Check if Auth User already exists (Fetch up to 1000 to be safe)
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
         const existingAuth = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
         if (existingAuth) {
