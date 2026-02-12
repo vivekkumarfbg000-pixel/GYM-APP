@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
-import Groq from 'groq-sdk';
 import { db } from '@/lib/supabase';
-
-// Initialize Groq
-const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY || 'gsk_empty_fallback',
-});
+import { generateGroqResponse } from '@/lib/groq';
 
 export async function POST(req: Request) {
     try {
@@ -36,22 +31,16 @@ export async function POST(req: Request) {
         Do not include markdown backticks. Just raw JSON.
         `;
 
-        const completion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: prompt }],
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.7,
-            response_format: { type: "json_object" }
-        });
-
-        const text = completion.choices[0]?.message?.content || "{}";
-        // Cleanup just in case
-        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Use shared utility
+        const text = await generateGroqResponse(prompt, true); // true for JSON mode
 
         let planJson;
         try {
+            // Cleanup just in case
+            const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
             planJson = JSON.parse(cleanJson);
         } catch (e) {
-            console.error("Failed to parse AI JSON:", cleanJson);
+            console.error("Failed to parse AI JSON:", text);
             return NextResponse.json({ error: "AI generated invalid format" }, { status: 500 });
         }
 
