@@ -17,7 +17,6 @@ export async function POST(request: Request) {
         }
 
         // 2. Get member and verify they belong to this gym owner
-        // Use getById instead of getAll for performance
         const member = await db.members.getById(memberId);
 
         if (!member) {
@@ -39,7 +38,6 @@ export async function POST(request: Request) {
         const finalPassword = newPassword || generateSecurePassword();
 
         // 5. Update Supabase Auth User (Critical for login to work)
-        // We need the service role key to update other users' passwords
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -52,22 +50,50 @@ export async function POST(request: Request) {
         );
 
         // Try to update auth user
-        // Note: member.id in members table SHOULD match auth.users.id
-        const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-            memberId,
-            { password: finalPassword }
-        );
+        let authUpdateError = null;
+        try {
+            const { error } = await supabaseAdmin.auth.admin.updateUserById(
+                memberId,
+                { password: finalPassword }
+            );
+            authUpdateError = error;
+        } catch (e) {
+            // unexpected error
+        }
 
-        if (authError) {
-            console.error('Auth update error:', authError);
+        // AUTO-REPAIR: If Admin says "User not found" (Auth user missing), create it!
+        if (authUpdateError && authUpdateError.message.includes('User not found')) {
+            console.log(`Auto-repairing missing Auth User for member ${memberId}`);
+
+            const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+                id: memberId, // Force ID to match DB
+                email: member.email,
+                password: finalPassword,
+                email_confirm: true,
+                user_metadata: {
+                    name: member.name,
+                    role: 'member',
+                    gym_owner_id: gymOwnerId
+                }
+            });
+
+            if (createError) {
+                console.error('Failed to auto-repair auth user:', createError);
+                return NextResponse.json({
+                    success: false,
+                    error: `Critical Error: Account is corrupted and auto-repair failed. ${createError.message}`
+                }, { status: 500 });
+            }
+        } else if (authUpdateError) {
+            // Other errors (e.g. rate limit, validation)
+            console.error('Auth update error:', authUpdateError);
             return NextResponse.json({
                 success: false,
-                error: `Failed to update auth user: ${authError.message}`
+                error: `Failed to update auth user: ${authUpdateError.message}`
             }, { status: 500 });
         }
 
         // 6. Update member password in members table (for reference/display if needed)
-        // Use the admin client here too if RLS blocks the anon client
         const { error: dbError } = await supabaseAdmin
             .from('members')
             .update({ password: finalPassword })
@@ -75,13 +101,12 @@ export async function POST(request: Request) {
 
         if (dbError) {
             console.error('DB update error:', dbError);
-            // Verify if it's just RLS or something else, but we continue since auth is updated
         }
 
         return NextResponse.json({
             success: true,
             newPassword: finalPassword,
-            message: `Password reset successful for ${member.name}`
+            message: `Password reset successful for ${member.name}. Login restored.`
         });
 
     } catch (error: any) {

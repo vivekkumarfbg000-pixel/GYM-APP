@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 // GET - Fetch all members or search/filter
 export async function GET(request: NextRequest) {
@@ -59,32 +60,55 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if member with this email already exists
-        const { data: existing } = await supabase
-            .from('members')
-            .select('email')
-            .eq('email', body.email)
-            .maybeSingle();
+        // 0. Initialize Admin Client
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
 
-        if (existing) {
+        // 1. Create User in Supabase Auth FIRST
+        // This ensures they have a valid login. We use the returned ID for the database.
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: body.email,
+            password: body.password,
+            email_confirm: true, // Auto-confirm email
+            user_metadata: {
+                name: body.name,
+                role: 'member',
+                gym_owner_id: body.gym_owner_id
+            }
+        });
+
+        if (authError) {
+            console.error('Error creating auth user:', authError);
             return NextResponse.json(
-                { success: false, error: 'A member with this email already exists' },
-                { status: 409 }
+                { success: false, error: `Auth Error: ${authError.message}` },
+                { status: 400 } // Likely email already exists
             );
         }
 
-        // Hash password for secure storage
+        const newUserId = authData.user.id;
+
+        // 2. Hash password for local DB storage (optional, but good for reference/legacy)
+        // Note: The REAL authentication happens via Supabase Auth, but we keep this for consistency with existing schema
         const bcrypt = require('bcryptjs');
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(body.password, saltRounds);
 
-        // Prepare member data
+        // 3. Prepare member data with the Auth ID
         const memberData = {
+            id: newUserId, // CRITICAL: Link DB record to Auth User
             name: body.name,
             email: body.email,
             phone: body.phone || '',
-            password: hashedPassword, // Store hashed password
-            gym_owner_id: body.gym_owner_id, // Link to gym owner
+            password: hashedPassword,
+            gym_owner_id: body.gym_owner_id,
             membership_type: body.membership_type,
             membership_end_date: body.membership_end_date || null,
             segment: body.segment || 'New',
@@ -93,25 +117,29 @@ export async function POST(request: NextRequest) {
             check_in_frequency: body.check_in_frequency || 0,
             total_revenue: body.total_revenue || 0,
             pt_sessions: body.pt_sessions || 0,
-            status: 'Active', // New members are active by default
-            approved: true, // Auto-approved since gym owner creates them
+            status: 'Active',
+            approved: true,
             role: 'member',
             join_date: new Date().toISOString()
         };
 
-        const { data, error } = await supabase
+        // 4. Insert into Members Table (using Admin client to bypass any RLS that might block)
+        const { data, error } = await supabaseAdmin
             .from('members')
             .insert([memberData])
             .select()
             .single();
 
         if (error) {
-            console.error('Error creating member:', error);
+            console.error('Error creating member record:', error);
+
+            // Cleanup: If DB insert fails, we should delete the Auth user to prevent "orphan" accounts
+            await supabaseAdmin.auth.admin.deleteUser(newUserId);
 
             // Handle unique constraint violations
             if (error.code === '23505') {
                 return NextResponse.json(
-                    { success: false, error: 'A member with this email already exists' },
+                    { success: false, error: 'A member with this email already exists in database' },
                     { status: 409 }
                 );
             }
@@ -122,7 +150,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Return success with member data (excluding password)
+        // Return success with member data
         const { password: _, ...memberWithoutPassword } = data as any;
 
         // Send welcome notifications (non-blocking)
@@ -130,20 +158,17 @@ export async function POST(request: NextRequest) {
             const { sendWelcomeEmail } = await import('@/lib/email');
             const { sendWelcomeWhatsApp } = await import('@/lib/whatsapp');
 
-            // Get gym name (use default or fetch from gym_owner)
             const gymName = process.env.GYM_NAME || 'GymFlow AI';
 
-            // Send email notification
-            const emailResult = await sendWelcomeEmail({
+            await sendWelcomeEmail({
                 memberEmail: body.email,
                 memberName: body.name,
-                password: body.password, // Plain password (before hashing)
+                password: body.password,
                 gymName
             });
 
-            // Send WhatsApp notification if phone number provided
             if (body.phone) {
-                const whatsappResult = await sendWelcomeWhatsApp({
+                await sendWelcomeWhatsApp({
                     phoneNumber: body.phone,
                     memberName: body.name,
                     email: body.email,
@@ -151,21 +176,14 @@ export async function POST(request: NextRequest) {
                     gymName
                 });
             }
-
-            // Log notification results but don't fail member creation
-            console.log('Welcome notifications sent:', {
-                email: emailResult.success,
-                whatsapp: body.phone ? 'attempted' : 'skipped'
-            });
         } catch (notifError) {
-            // Log but don't fail the member creation
             console.warn('Failed to send welcome notifications:', notifError);
         }
 
         return NextResponse.json({
             success: true,
             data: memberWithoutPassword,
-            message: 'Member created successfully. Welcome notifications sent.'
+            message: 'Member created successfully. Login Sync Active.'
         }, { status: 201 });
     } catch (error: any) {
         console.error('Unexpected error in POST /api/members:', error);
@@ -237,7 +255,22 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        const { error } = await supabase
+        // Also delete from Auth if possible (requires Service Role)
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        // Try to delete auth user first
+        await supabaseAdmin.auth.admin.deleteUser(id);
+
+        const { error } = await supabaseAdmin
             .from('members')
             .delete()
             .eq('id', id);
