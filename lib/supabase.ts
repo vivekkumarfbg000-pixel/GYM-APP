@@ -26,6 +26,7 @@ const getSupabaseAnonKey = () => {
         }
         console.warn('⚠️ Falling back to hardcoded safety key to prevent total crash, but Auth will likely fail.');
 
+        // If in build mode or missing, return the dummy key to prevent crash
         return hardcodedKey;
     }
     return envKey;
