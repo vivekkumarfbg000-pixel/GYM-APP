@@ -37,10 +37,20 @@ export async function POST(request: Request) {
 
         // 4. Ensure Auth User Exists (Safety Check)
         // If frontend didn't pass authUserId (e.g. legacy call), create one now.
+        // 4. Ensure Auth User Exists (Safety Check)
+        // If frontend didn't pass authUserId (e.g. legacy call), create one now.
         if (!finalAuthUserId) {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+            if (!supabaseUrl || !supabaseServiceKey) {
+                console.error('❌ Signup Error: Missing Supabase environment variables');
+                return NextResponse.json({ success: false, error: 'Server configuration error' }, { status: 500 });
+            }
+
             const supabaseAdmin = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                supabaseUrl,
+                supabaseServiceKey,
                 {
                     auth: {
                         autoRefreshToken: false,
@@ -65,22 +75,7 @@ export async function POST(request: Request) {
         }
 
         // 5. Create gym owner in database
-        // IMPORTANT: We should try to force the ID to match valid Auth ID if possible, 
-        // but `gym_owners` might use UUID generation. 
-        // Ideally, `gym_owners.id` should be the PK and match `auth.users.id`.
-
-        let gymOwner;
-        // Check if create method supports explicit ID or if we need manual insert
-        // Assuming db.gymOwners.create handles it or we rely on auth_user_id column
-
-        // Manual insert to control ID if possible, or standard create
-        // Based on previous code, create takes a payload. Let's stick to standard flow 
-        // but ensure auth_user_id is set.
-
-        // BETTER: Use manual insert to try and set ID = authUserId if schema allows
-        // Checking if we can do that... usually safer to use auth_user_id fk
-
-        gymOwner = await db.gymOwners.create({
+        let gymOwner = await db.gymOwners.create({
             id: finalAuthUserId, // Try to set ID to match Auth (Best Practice for 1:1)
             name,
             email,
@@ -90,8 +85,6 @@ export async function POST(request: Request) {
             gym_password: gymPassword,
             auth_user_id: finalAuthUserId
         });
-
-        // Note: If schema doesn't allow setting ID, it might ignore it, but `auth_user_id` will link them.
 
         return NextResponse.json({
             success: true,

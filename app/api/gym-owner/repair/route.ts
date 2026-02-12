@@ -22,10 +22,20 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid Gym Password' }, { status: 403 });
         }
 
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+
+        if (!supabaseUrl || !supabaseServiceKey) {
+            console.error('❌ Repair Account Error: Missing Supabase environment variables');
+            console.error('URL:', supabaseUrl ? 'Defined' : 'Missing');
+            console.error('Service Key:', supabaseServiceKey ? 'Defined' : 'Missing');
+            return NextResponse.json({ error: 'Server configuration error: Missing Supabase credentials.' }, { status: 500 });
+        }
+
         // 2. Initialize Admin Client
         const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
+            supabaseUrl,
+            supabaseServiceKey,
             {
                 auth: {
                     autoRefreshToken: false,
