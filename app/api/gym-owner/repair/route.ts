@@ -23,13 +23,12 @@ export async function POST(request: Request) {
         }
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        // Try all possible env var names for the service key
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
         if (!supabaseUrl || !supabaseServiceKey) {
-            console.error('❌ Repair Account Error: Missing Supabase environment variables');
-            console.error('URL:', supabaseUrl ? 'Defined' : 'Missing');
-            console.error('Service Key:', supabaseServiceKey ? 'Defined' : 'Missing');
-            return NextResponse.json({ error: 'Server configuration error: Missing Supabase credentials.' }, { status: 500 });
+            console.error('❌ Repair Account Error: Missing Supabase credentials.');
+            return NextResponse.json({ error: 'Server configuration error: Critical credentials missing.' }, { status: 500 });
         }
 
         // 2. Initialize Admin Client

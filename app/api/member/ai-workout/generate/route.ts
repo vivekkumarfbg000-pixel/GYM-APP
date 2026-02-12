@@ -2,10 +2,6 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 // Fallback workout if AI fails
 function getFallbackWorkout(goal: string = 'general') {
     return {
@@ -27,6 +23,10 @@ export async function POST(request: Request) {
     try {
         const { memberId, goal } = await request.json();
 
+        // Initialize Supabase Client dynamically to prevent build-time errors
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
         // 1. Fetch member stats from Supabase
         let memberStats = {
             level: 1,
@@ -34,8 +34,10 @@ export async function POST(request: Request) {
             goal: goal || 'general fitness'
         };
 
-        if (memberId && supabaseUrl) {
+        if (memberId && supabaseUrl && supabaseKey) {
             try {
+                const supabase = createClient(supabaseUrl, supabaseKey);
+
                 const { data } = await supabase
                     .from('members')
                     .select('level, points')
@@ -70,7 +72,6 @@ export async function POST(request: Request) {
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
             const prompt = `Generate a personalized workout plan for a gym member.
-
 Member Stats:
 - Level: ${memberStats.level}
 - Goal: ${memberStats.goal}
@@ -100,14 +101,22 @@ Requirements:
             // Remove markdown code blocks if present
             text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-            // Parse JSON
-            const workout = JSON.parse(text);
-
-            return NextResponse.json({
-                success: true,
-                workout,
-                mode: 'gemini'
-            });
+            try {
+                const workout = JSON.parse(text);
+                return NextResponse.json({
+                    success: true,
+                    workout,
+                    mode: 'gemini'
+                });
+            } catch (e) {
+                // If JSON parse fails, try to cleanup and parse again or fallback
+                console.error("Failed to parse Gemini response:", text);
+                return NextResponse.json({
+                    success: true,
+                    workout: getFallbackWorkout(goal),
+                    mode: 'fallback_parse_error'
+                });
+            }
 
         } catch (apiError) {
             console.error('Gemini API Error:', apiError);
