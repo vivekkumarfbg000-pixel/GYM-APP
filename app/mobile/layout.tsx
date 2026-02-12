@@ -33,14 +33,17 @@ export default function MemberLayout({
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20 theme-member">
-            {/* Main Content */}
-            <main className="max-w-md mx-auto min-h-screen bg-white shadow-lg overflow-hidden relative">
+        <div className="min-h-screen bg-neutral-50 pb-20 theme-member font-sans text-foreground selection:bg-primary/20">
+            <div className="mx-auto max-w-md min-h-screen bg-white shadow-2xl overflow-hidden relative border-x border-gray-100">
                 {children}
-            </main>
+            </div>
 
             {/* Bottom Navigation */}
-            <BottomNav />
+            <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+                <div className="w-full max-w-md pointer-events-auto">
+                    <BottomNav />
+                </div>
+            </div>
         </div>
     );
 }

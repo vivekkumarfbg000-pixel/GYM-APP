@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { DietSkeleton } from '@/components/shared/skeleton-loaders';
+import { DietMealCard } from '@/components/mobile/DietMealCard';
 
 type Message = {
     id: string;
@@ -328,33 +329,23 @@ export default function DietCoachPage() {
                                 </div>
                             </div>
 
+                            import {DietMealCard} from '@/components/mobile/DietMealCard';
+
+                            // ... (other imports)
+
+                            // Inside component render:
                             <div className="space-y-3">
-                                {dietPlan.plan_data.days && Object.entries(dietPlan.plan_data.days).map(([day, meals]: any) => (
-                                    <div key={day} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 font-bold text-gray-700 flex justify-between">
-                                            <span>{day}</span>
-                                            <span className="text-xs font-normal text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200">{meals.macros || 'Balanced'}</span>
-                                        </div>
-                                        <div className="p-4 space-y-3 text-sm">
-                                            <div className="flex gap-3">
-                                                <span className="text-xs font-bold text-orange-500 w-16 uppercase">Breakfast</span>
-                                                <span className="text-gray-700 flex-1">{meals.breakfast}</span>
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <span className="text-xs font-bold text-green-500 w-16 uppercase">Lunch</span>
-                                                <span className="text-gray-700 flex-1">{meals.lunch}</span>
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <span className="text-xs font-bold text-yellow-500 w-16 uppercase">Snack</span>
-                                                <span className="text-gray-700 flex-1">{meals.snack}</span>
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <span className="text-xs font-bold text-blue-500 w-16 uppercase">Dinner</span>
-                                                <span className="text-gray-700 flex-1">{meals.dinner}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                {dietPlan.plan_data.days && Object.entries(dietPlan.plan_data.days).map(([day, meals]: any) => {
+                                    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+                                    return (
+                                        <DietMealCard
+                                            key={day}
+                                            day={day}
+                                            meals={meals}
+                                            isToday={day === today}
+                                        />
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

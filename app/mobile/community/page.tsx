@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Trophy, Users, Flame, Heart, MessageCircle, Share2, Award, ChevronRight, Send, Bot } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CommunityPost } from '@/components/mobile/CommunityPost';
+import { PollCard } from '@/components/mobile/PollCard';
+import { LeaderboardRow } from '@/components/mobile/LeaderboardRow';
+import { ChallengeCard } from '@/components/mobile/ChallengeCard';
 import { CommunityFeedSkeleton, LeaderboardSkeleton } from '@/components/shared/skeleton-loaders';
 
 export default function CommunityPage() {
@@ -421,168 +425,33 @@ export default function CommunityPage() {
                                 </div>
 
                                 {/* Polls Section */}
-                                {polls.map(poll => {
-                                    const userVoted = votedPolls[poll.id];
-                                    return (
-                                        <div key={poll.id} className="bg-gradient-to-br from-indigo-50 to-purple-50 p-5 rounded-2xl shadow-sm border border-indigo-100">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div className="flex-1">
-                                                    <h3 className="font-bold text-gray-900 text-base mb-1">{poll.question}</h3>
-                                                    <p className="text-xs text-indigo-600 font-medium">by {poll.createdBy}</p>
-                                                </div>
-                                                <div className="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">
-                                                    {poll.totalVotes} {poll.totalVotes === 1 ? 'vote' : 'votes'}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                {poll.options.map((option: any) => {
-                                                    const isVoted = userVoted === option.id;
-                                                    const percentage = poll.totalVotes > 0 ? Math.round((option.votes / poll.totalVotes) * 100) : 0;
-
-                                                    return (
-                                                        <button
-                                                            key={option.id}
-                                                            onClick={() => handleVote(poll.id, option.id)}
-                                                            className={`w-full text-left p-3 rounded-xl transition-all relative overflow-hidden ${isVoted
-                                                                ? 'bg-indigo-600 text-white shadow-md'
-                                                                : userVoted
-                                                                    ? 'bg-white/50 text-gray-600 cursor-default'
-                                                                    : 'bg-white hover:bg-indigo-100 text-gray-700 hover:shadow-sm active:scale-98'
-                                                                }`}
-                                                            disabled={!!userVoted}
-                                                        >
-                                                            {/* Progress bar background */}
-                                                            {userVoted && (
-                                                                <div
-                                                                    className={`absolute inset-0 ${isVoted ? 'bg-indigo-700/30' : 'bg-indigo-200/40'} transition-all duration-500`}
-                                                                    style={{ width: `${percentage}%` }}
-                                                                />
-                                                            )}
-
-                                                            <div className="relative z-10 flex items-center justify-between">
-                                                                <span className="font-medium text-sm">{option.text}</span>
-                                                                {userVoted && (
-                                                                    <span className={`text-xs font-bold ${isVoted ? 'text-white' : 'text-indigo-700'}`}>
-                                                                        {percentage}%
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {userVoted && (
-                                                <p className="text-xs text-indigo-600 mt-3 text-center">✓ You voted</p>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                {polls.map(poll => (
+                                    <PollCard
+                                        key={poll.id}
+                                        poll={poll}
+                                        userVotedOptionId={votedPolls[poll.id]}
+                                        onVote={handleVote}
+                                    />
+                                ))}
 
                                 {feed.length === 0 && polls.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm">No posts yet. Be the first!</div>
+                                    <div className="text-center py-12 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
+                                        <p className="text-sm font-medium">No posts yet. Be the first to share your gains!</p>
+                                    </div>
                                 )}
 
                                 {feed.map(post => (
-                                    <div key={post.id} className={`bg-white p-4 rounded-2xl shadow-sm border ${post.type === 'ai' ? 'border-purple-200 bg-purple-50/30' : 'border-gray-100'}`}>
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <Avatar className={`h-10 w-10 ${post.type === 'ai' ? 'bg-purple-100 text-purple-600' : 'bg-gradient-to-br from-blue-400 to-indigo-400 text-white'}`}>
-                                                <AvatarFallback>
-                                                    {post.type === 'ai' ? <Bot size={20} /> : post.avatar}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <h3 className="font-bold text-sm text-gray-900 flex items-center gap-1">
-                                                    {post.type === 'ai' ? 'AI Coach' : post.user}
-                                                    {post.type === 'owner' && <span className="bg-orange-100 text-orange-600 text-[10px] px-1.5 py-0.5 rounded font-bold">OWNER</span>}
-                                                    {post.type === 'ai' && <span className="bg-purple-100 text-purple-600 text-[10px] px-1.5 py-0.5 rounded font-bold">BOT</span>}
-                                                </h3>
-                                                <p className="text-xs text-gray-400">{post.time}</p>
-                                            </div>
-                                        </div>
-
-                                        <p className="text-gray-800 text-sm mb-3 leading-relaxed whitespace-pre-wrap">{post.content}</p>
-
-                                        {post.image && (
-                                            <div className="mb-4 rounded-xl overflow-hidden shadow-sm">
-                                                <img src={post.image} alt="Post" className="w-full h-auto object-cover max-h-64" />
-                                            </div>
-                                        )}
-
-                                        <div className="flex items-center gap-6 text-gray-500 text-sm border-t border-gray-50 pt-3">
-                                            <button
-                                                onClick={() => handleLike(post.id)}
-                                                className={`flex items-center gap-1.5 transition-colors ${post.isLiked ? 'text-red-500 font-bold' : 'hover:text-red-500'}`}
-                                            >
-                                                <Heart size={18} fill={post.isLiked ? "currentColor" : "none"} /> {post.likes}
-                                            </button>
-                                            <button
-                                                className={`flex items-center gap-1.5 transition-colors ${expandedPost === post.id ? 'text-blue-600 font-bold' : 'hover:text-blue-500'}`}
-                                                onClick={() => toggleComments(post.id)}
-                                            >
-                                                <MessageCircle size={18} /> {post.comments}
-                                            </button>
-                                            <button className="ml-auto hover:text-gray-800">
-                                                <Share2 size={18} />
-                                            </button>
-                                        </div>
-
-                                        {/* Comments Section */}
-                                        {expandedPost === post.id && (
-                                            <div className="mt-4 pt-3 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200">
-                                                <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-1">
-                                                    {loadingComments[post.id] ? (
-                                                        <p className="text-xs text-center text-gray-400">Loading comments...</p>
-                                                    ) : (comments[post.id] || []).length > 0 ? (
-                                                        (comments[post.id] || []).map((comment: any) => (
-                                                            <div key={comment.id} className="flex gap-2 text-sm bg-gray-50 p-2 rounded-lg">
-                                                                <Avatar className="h-6 w-6 mt-1">
-                                                                    <AvatarFallback className="text-[10px] bg-gray-200">{comment.avatar}</AvatarFallback>
-                                                                </Avatar>
-                                                                <div className="flex-1">
-                                                                    <div className="flex justify-between items-baseline">
-                                                                        <span className="font-bold text-xs">{comment.user}</span>
-                                                                        <span className="text-[10px] text-gray-400">{comment.time}</span>
-                                                                    </div>
-                                                                    <p className="text-gray-700 text-xs mt-0.5">{comment.content}</p>
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-xs text-center text-gray-400 py-2">No comments yet. Say something!</p>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Add a comment..."
-                                                        className="flex-1 text-sm bg-gray-50 border-none rounded-full px-4 py-2 focus:ring-1 focus:ring-blue-200"
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                                handleComment(post.id, (e.target as HTMLInputElement).value);
-                                                                (e.target as HTMLInputElement).value = '';
-                                                            }
-                                                        }}
-                                                    />
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 rounded-full text-blue-600 hover:bg-blue-50"
-                                                        onClick={(e) => {
-                                                            const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                                            handleComment(post.id, input.value);
-                                                            input.value = '';
-                                                        }}
-                                                        aria-label="Send comment"
-                                                    >
-                                                        <Send size={16} />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <CommunityPost
+                                        key={post.id}
+                                        post={post}
+                                        currentMemberId={memberId}
+                                        isExpanded={expandedPost === post.id}
+                                        comments={comments[post.id] || []}
+                                        loadingComments={loadingComments[post.id]}
+                                        onLike={handleLike}
+                                        onToggleComments={toggleComments}
+                                        onPostComment={handleComment}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -591,27 +460,11 @@ export default function CommunityPage() {
                         {activeTab === 'leaderboard' && (
                             <div className="space-y-3">
                                 {leaderboard.map((user, i) => (
-                                    <div key={user.id} className={`flex items-center p-4 rounded-2xl border ${user.rank === 1 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-orange-100' : 'bg-white border-gray-100'}`}>
-                                        <div className={`w-8 h-8 flex items-center justify-center font-bold text-sm rounded-full mr-4 ${user.rank <= 3 ? 'bg-yellow-400 text-white shadow-md' : 'text-gray-400 bg-gray-100'}`}>
-                                            {user.rank}
-                                        </div>
-                                        <Avatar className="h-10 w-10 mr-3 border-2 border-white shadow-sm">
-                                            <AvatarFallback className="bg-gray-200 text-gray-600">{user.avatar}</AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                                {user.name}
-                                                {user.streak > 0 && (
-                                                    <span className="flex items-center gap-1 text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-bold">
-                                                        <Flame size={10} className="fill-current" />
-                                                        {user.streak}
-                                                    </span>
-                                                )}
-                                            </h3>
-                                            <p className="text-xs text-gray-500">{user.points} Points</p>
-                                        </div>
-                                        {user.rank === 1 && <Trophy className="text-yellow-500" size={24} />}
-                                    </div>
+                                    <LeaderboardRow
+                                        key={user.id}
+                                        user={user}
+                                        rank={user.rank}
+                                    />
                                 ))}
                             </div>
                         )}
@@ -620,48 +473,11 @@ export default function CommunityPage() {
                         {activeTab === 'challenges' && (
                             <div className="space-y-4">
                                 {challenges.map(challenge => (
-                                    <div key={challenge.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                                            <Trophy size={64} />
-                                        </div>
-
-                                        <div className="flex justify-between items-start mb-2 relative z-10">
-                                            <div>
-                                                <h3 className="font-bold text-gray-900 text-lg">{challenge.title}</h3>
-                                                <p className="text-gray-500 text-xs uppercase tracking-wider font-semibold">Goal: {challenge.goal}</p>
-                                            </div>
-                                            {challenge.joined ? (
-                                                <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold">Joined</span>
-                                            ) : (
-                                                <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-bold">New</span>
-                                            )}
-                                        </div>
-
-                                        {challenge.joined ? (
-                                            <div className="mt-4">
-                                                <div className="flex justify-between text-xs font-semibold mb-1">
-                                                    <span className="text-green-600">{Math.round((challenge.progress / challenge.total) * 100)}% Complete</span>
-                                                    <span className="text-gray-400">{challenge.daysLeft} days left</span>
-                                                </div>
-                                                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-green-500 rounded-full transition-all duration-1000" style={{ width: `${(challenge.progress / challenge.total) * 100}%` }}></div>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="mt-4 flex items-center justify-between">
-                                                <div className="text-xs text-orange-600 font-bold flex items-center gap-1">
-                                                    <Award size={14} /> Earn 500 pts
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    className="bg-black hover:bg-gray-800 text-white rounded-full px-6"
-                                                    onClick={() => handleJoinChallenge(challenge.id)}
-                                                >
-                                                    Join
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <ChallengeCard
+                                        key={challenge.id}
+                                        challenge={challenge}
+                                        onJoin={handleJoinChallenge}
+                                    />
                                 ))}
                             </div>
                         )}

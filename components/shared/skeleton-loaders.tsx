@@ -255,3 +255,22 @@ export function DietSkeleton() {
         </div>
     );
 }
+
+export function AchievementsSkeleton() {
+    return (
+        <div className="min-h-screen bg-gray-50 pb-10 animate-pulse">
+            <div className="bg-white h-14 border-b border-gray-100 mb-6"></div>
+            <div className="px-6 mb-8">
+                <div className="h-48 bg-gray-200 rounded-3xl w-full"></div>
+            </div>
+            <div className="px-6">
+                <div className="h-6 w-32 bg-gray-200 rounded mb-4"></div>
+                <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="h-32 bg-white rounded-2xl border border-gray-100"></div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}

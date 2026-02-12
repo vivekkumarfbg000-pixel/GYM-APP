@@ -1,6 +1,7 @@
+```typescript
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '@/lib/supabase';
+import { generateGroqResponse } from '@/lib/groq';
 
 // Fallback workout if AI fails
 function getFallbackWorkout(goal: string = 'general') {
@@ -47,8 +48,8 @@ export async function POST(request: Request) {
             }
         }
 
-        // 2. Check for Gemini API Key
-        const apiKey = process.env.GEMINI_API_KEY;
+        // 2. Check for Groq API Key
+        const apiKey = process.env.GROQ_API_KEY;
 
         if (!apiKey) {
             // Return fallback workout
@@ -56,55 +57,50 @@ export async function POST(request: Request) {
             return NextResponse.json({
                 success: true,
                 workout: getFallbackWorkout(goal),
-                mode: 'fallback'
+                mode: 'fallback_no_key'
             });
         }
 
-        // 3. Call Gemini AI
+        // 3. Call Groq AI
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
             const prompt = `Generate a personalized workout plan for a gym member.
 Member Stats:
-- Level: ${memberStats.level}
-- Goal: ${memberStats.goal}
-- Workouts Completed: ${memberStats.workouts_completed}
+- Level: ${ memberStats.level }
+- Goal: ${ memberStats.goal }
+- Workouts Completed: ${ memberStats.workouts_completed }
 
-Return ONLY valid JSON in this exact format (no markdown, no code blocks):
+Return ONLY valid JSON in this exact format(no markdown, no code blocks):
 {
-  "title": "Workout Name",
-  "duration": 45,
-  "calories": 300,
-  "focus": "Strength Building",
-  "exercises": [
-    {"name": "Exercise Name", "sets": 3, "reps": "12-15", "rest": "60s"}
-  ]
+    "title": "Workout Name",
+        "duration": 45,
+            "calories": 300,
+                "focus": "Strength Building",
+                    "exercises": [
+                        { "name": "Exercise Name", "sets": 3, "reps": "12-15", "rest": "60s" }
+                    ]
 }
 
 Requirements:
 - Include 5 exercises
-- Make it challenging but suitable for level ${memberStats.level}
-- Focus on: ${memberStats.goal}
-- Use common gym exercises (no equipment needed or basic dumbbells)`;
+    - Make it challenging but suitable for level ${ memberStats.level }
+        - Focus on: ${ memberStats.goal }
+- Use common gym exercises(no equipment needed or basic dumbbells)`;
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            let text = response.text().trim();
-
+            const text = await generateGroqResponse(prompt, true); // true for JSON mode
+            
             // Remove markdown code blocks if present
-            text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            const cleanJson = text.replace(/```json\n ? /g, '').replace(/```\n?/g, '').trim();
 
             try {
-                const workout = JSON.parse(text);
+                const workout = JSON.parse(cleanJson);
                 return NextResponse.json({
                     success: true,
                     workout,
-                    mode: 'gemini'
+                    mode: 'groq'
                 });
             } catch (e) {
-                // If JSON parse fails, try to cleanup and parse again or fallback
-                console.error("Failed to parse Gemini response:", text);
+                // If JSON parse fails, try fallback
+                console.error("Failed to parse Groq response:", text);
                 return NextResponse.json({
                     success: true,
                     workout: getFallbackWorkout(goal),
@@ -113,7 +109,7 @@ Requirements:
             }
 
         } catch (apiError) {
-            console.error('Gemini API Error:', apiError);
+            console.error('Groq API Error:', apiError);
             // Fallback to hardcoded workout if AI fails
             return NextResponse.json({
                 success: true,

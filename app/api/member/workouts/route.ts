@@ -8,6 +8,8 @@ export async function POST(request: Request) {
         const {
             memberId,
             workoutType,
+            title, // For Gym
+            exercises, // For Gym
             startTime,
             endTime,
             duration,
@@ -21,23 +23,56 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
         }
 
-        const { data, error } = await supabase
-            .from('outdoor_workouts')
-            .insert([
-                {
-                    member_id: memberId,
-                    workout_type: workoutType,
-                    start_time: startTime,
-                    end_time: endTime,
-                    duration_seconds: duration,
-                    distance_meters: distance,
-                    calories_burned: calories,
-                    route_data: routeData, // JSON array of coordinates
-                    created_at: new Date().toISOString()
-                }
-            ])
-            .select()
-            .single();
+        let data;
+        let error;
+
+        // Route to appropriate table based on type
+        if (workoutType === 'Gym') {
+            // Save to ai_workouts (repurposed for manual gym logs)
+            const result = await supabase
+                .from('ai_workouts')
+                .insert([
+                    {
+                        member_id: memberId,
+                        goal: title || 'Gym Session', // Use title as goal
+                        duration: Math.round(duration ? duration / 60 : 60), // Store in minutes
+                        plan_data: exercises, // Store exercises JSON
+                        ai_notes: 'Manual Log',
+                        status: 'completed',
+                        risk_level: 'low',
+                        created_at: startTime || new Date().toISOString(),
+                        updated_at: endTime || new Date().toISOString()
+                    }
+                ])
+                .select()
+                .single();
+
+            data = result.data;
+            error = result.error;
+
+        } else {
+            // Outdoor / GPS Workouts
+            const result = await supabase
+                .from('outdoor_workouts')
+                .insert([
+                    {
+                        member_id: memberId,
+                        workout_type: workoutType,
+                        start_time: startTime,
+                        end_time: endTime,
+                        duration_seconds: duration,
+                        distance_meters: distance,
+                        calories_burned: calories,
+                        route_data: routeData, // JSON array of coordinates
+                        created_at: new Date().toISOString()
+                    }
+                ])
+                .select()
+                .single();
+
+            data = result.data;
+            error = result.error;
+        }
 
         if (error) throw error;
 

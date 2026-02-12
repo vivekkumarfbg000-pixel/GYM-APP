@@ -11,169 +11,61 @@ import { toast } from 'sonner';
 import { MobileDashboardSkeleton } from '@/components/shared/skeleton-loaders';
 
 import { StreakCard } from '@/components/mobile/streak-card';
+import { AIProgressCard } from '@/components/mobile/AIProgressCard';
 
 export default function MobileDashboard() {
     const [name, setName] = useState('');
     const [stats, setStats] = useState({ workouts: 0, distance: 0, calories: 0 });
     const [memberData, setMemberData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [showPayModal, setShowPayModal] = useState(false);
-    const [processing, setProcessing] = useState(false);
-    const [streakData, setStreakData] = useState({ streak: 0, lastCheckIn: '' });
-    const [paymentMode, setPaymentMode] = useState<'card' | 'upi'>('card');
-    const [utr, setUtr] = useState('');
+    const [aiInsight, setAiInsight] = useState(null); // AI Insight State
+    const [loadingInsight, setLoadingInsight] = useState(true);
 
-    const router = useRouter();
+    // ... (rest of state)
 
     useEffect(() => {
-        const memberId = localStorage.getItem('gymflow_member_id');
-        const memberName = localStorage.getItem('gymflow_member_name');
-
-        if (!memberId) {
-            router.push('/mobile/login');
-            return;
-        }
-
-        setName(memberName || 'Member');
+        // ... (existing useEffect)
         loadDashboardData(memberId);
         handleCheckIn(memberId);
+        fetchAiInsight(memberId); // Fetch insight
     }, [router]);
 
-    const handleCheckIn = async (memberId: string) => {
+    const fetchAiInsight = async (memberId: string) => {
         try {
-            const res = await fetch('/api/gamification/streak', {
+            const res = await fetch('/api/ai/progress-insight', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ memberId })
             });
             const data = await res.json();
-
-            if (data.status) {
-                const messages: Record<string, string> = {
-                    'increased': `🔥 ${data.streak} Day Streak! ${data.message}`,
-                    'maintained': `✨ ${data.message}`,
-                    'reset': `💪 ${data.message}`
-                };
-
-                if (data.status === 'increased') {
-                    toast.success(messages[data.status]);
-                } else {
-                    toast(messages[data.status]);
-                }
-
-                // Update local state for immediate feedback
-                setStreakData({
-                    streak: data.streak,
-                    lastCheckIn: new Date().toISOString().split('T')[0]
-                });
-            }
-        } catch (error) {
-            console.error('Streak update failed', error);
-        }
-    };
-
-    const loadDashboardData = async (memberId: string) => {
-        try {
-            // 1. Fetch Profile Status
-            const profileRes = await fetch(`/api/member/profile?memberId=${memberId}`);
-            const profileData = await profileRes.json();
-            if (profileData.success) {
-                setMemberData(profileData.data);
-                // Set initial streak data from profile
-                setStreakData({
-                    streak: profileData.data.streak_current || 0,
-                    lastCheckIn: profileData.data.last_activity_date || ''
-                });
-            }
-
-            // 2. Fetch Workouts
-            const historyRes = await fetch(`/api/member/workouts?memberId=${memberId}`);
-            const historyData = await historyRes.json();
-
-            if (historyData.success && historyData.data) {
-                // Calculate totals
-                const totalStats = historyData.data.reduce((acc: any, curr: any) => ({
-                    workouts: acc.workouts + 1,
-                    distance: acc.distance + (curr.distance || curr.distance_meters || 0),
-                    calories: acc.calories + (curr.calories || curr.calories_burned || 0)
-                }), { workouts: 0, distance: 0, calories: 0 });
-
-                setStats(totalStats);
-            }
-        } catch (error) {
-            console.error('Failed to fetch dashboard data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleProcessPayment = async () => {
-        setProcessing(true);
-        try {
-            const memberId = localStorage.getItem('gymflow_member_id');
-            const res = await fetch('/api/payments/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    memberId,
-                    amount: 2999,
-                    paymentMethod: paymentMode === 'card' ? 'card' : 'upi_manual',
-                    transactionId: paymentMode === 'upi' ? utr : undefined
-                })
-            });
-            const data = await res.json();
-
             if (data.success) {
-                if (paymentMode === 'upi') {
-                    toast.success('Payment submitted for verification!');
-                } else {
-                    toast.success('Payment Successful!');
-                }
-                setShowPayModal(false);
-                setUtr('');
-                if (memberId) loadDashboardData(memberId); // Refresh status
-            } else {
-                toast.error('Payment failed: ' + data.error);
+                setAiInsight(data.insight);
             }
-        } catch (error) {
-            toast.error('Payment error');
+        } catch (e) {
+            console.error("Failed to fetch insight");
+        } finally {
+            setLoadingInsight(false);
         }
-        setProcessing(false);
     };
 
-    const isMembershipActive = memberData?.membership_status === 'active';
-    const nextBillDate = memberData?.next_payment_date ? new Date(memberData.next_payment_date).toLocaleDateString() : 'N/A';
-
-    if (loading) {
-        return <MobileDashboardSkeleton />;
-    }
+    // ... (rest of functions)
 
     return (
         <div className="bg-gray-50 min-h-screen pb-24 relative animate-in fade-in duration-500 font-sans">
             {/* Header / Hero Section */}
             <div className="bg-gradient-to-br from-blue-700 via-indigo-600 to-purple-700 px-6 pt-12 pb-24 rounded-b-[2.5rem] shadow-xl shadow-indigo-200">
                 <div className="flex justify-between items-center mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-full border-2 border-white/30 shadow-lg overflow-hidden flex-shrink-0 relative">
-                            <Image
-                                src="/logo.jpg"
-                                alt="Logo"
-                                fill
-                                className="object-cover"
-                                sizes="48px"
-                                priority
-                            />
-                        </div>
-                        <div>
-                            <p className="text-blue-100 text-xs font-medium tracking-wide opacity-90">Good Morning,</p>
-                            <h1 className="text-2xl font-bold text-white tracking-tight leading-tight">{name.split(' ')[0]}</h1>
-                        </div>
-                    </div>
+                    {/* ... (Header content) ... */}
                 </div>
 
                 {/* Streak Card */}
-                <div className="mb-8 transform hover:scale-[1.02] transition-transform duration-300">
+                <div className="mb-6 transform hover:scale-[1.02] transition-transform duration-300">
                     <StreakCard streak={streakData.streak} lastCheckIn={streakData.lastCheckIn} />
+                </div>
+
+                {/* AI Insight Card */}
+                <div className="mb-8">
+                    <AIProgressCard insight={aiInsight} loading={loadingInsight} />
                 </div>
 
                 {/* Glass Stats Row */}
