@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 // Fallback workout if AI fails
 function getFallbackWorkout(goal: string = 'general') {
@@ -23,10 +23,6 @@ export async function POST(request: Request) {
     try {
         const { memberId, goal } = await request.json();
 
-        // Initialize Supabase Client dynamically to prevent build-time errors
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
         // 1. Fetch member stats from Supabase
         let memberStats = {
             level: 1,
@@ -34,10 +30,8 @@ export async function POST(request: Request) {
             goal: goal || 'general fitness'
         };
 
-        if (memberId && supabaseUrl && supabaseKey) {
+        if (memberId) {
             try {
-                const supabase = createClient(supabaseUrl, supabaseKey);
-
                 const { data } = await supabase
                     .from('members')
                     .select('level, points')
