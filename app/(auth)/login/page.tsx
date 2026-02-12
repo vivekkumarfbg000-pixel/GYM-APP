@@ -248,6 +248,27 @@ export default function LoginPage() {
                                 <Button type="submit" className="w-full" disabled={resetLoading}>
                                     {resetLoading ? 'Sending Link...' : 'Send Reset Link'}
                                 </Button>
+
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <span className="w-full border-t" />
+                                    </div>
+                                    <div className="relative flex justify-center text-xs uppercase">
+                                        <span className="bg-white px-2 text-gray-500">Or</span>
+                                    </div>
+                                </div>
+
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-2">Email not arriving?</p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                                        onClick={() => router.push('/repair-account')}
+                                    >
+                                        Use Gym Password Recovery
+                                    </Button>
+                                </div>
                             </form>
                         </CardContent>
                     </Card>
