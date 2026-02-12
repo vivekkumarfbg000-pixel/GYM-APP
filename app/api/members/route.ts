@@ -258,7 +258,7 @@ export async function DELETE(request: NextRequest) {
         // Also delete from Auth if possible (requires Service Role)
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
             {
                 auth: {
                     autoRefreshToken: false,

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         // 5. Update Supabase Auth User (Critical for login to work)
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
             {
                 auth: {
                     autoRefreshToken: false,
