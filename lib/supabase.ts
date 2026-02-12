@@ -17,7 +17,15 @@ const getSupabaseAnonKey = () => {
         envKey.includes('service_role') ||
         envKey.includes('c2VydmljZV9yb2xl') ||
         envKey.startsWith('sb_secret')) {
-        console.warn('⚠️ Invalid or unsafe NEXT_PUBLIC_SUPABASE_ANON_KEY detected. Falling back to safe key.');
+
+        console.error('❌ CRITICAL SECURITY WARNING: Invalid or unsafe NEXT_PUBLIC_SUPABASE_ANON_KEY detected!');
+        if (envKey) {
+            console.error('The key appears to be a SERVICE ROLE key. Do NOT use this in the browser. It bypasses all RLS!');
+        } else {
+            console.error('No NEXT_PUBLIC_SUPABASE_ANON_KEY found in environment variables.');
+        }
+        console.warn('⚠️ Falling back to hardcoded safety key to prevent total crash, but Auth will likely fail.');
+
         return hardcodedKey;
     }
     return envKey;

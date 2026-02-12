@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Smartphone, Lock, AlertCircle, Clock } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Clock } from 'lucide-react';
 
 function MobileLoginContent() {
     const [email, setEmail] = useState('');
@@ -29,29 +28,77 @@ function MobileLoginContent() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError(null);
 
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            // 1. Authenticate with Supabase
+            const { data, error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
-            if (error) {
-                toast.error(error.message);
+            if (authError) {
+                if (authError.message.includes('Invalid login credentials')) {
+                    toast.error('Invalid email or password');
+                } else {
+                    toast.error(authError.message);
+                }
+                setLoading(false);
                 return;
             }
 
-            if (data.user) {
-                // Keep localStorage for compatibility with existing hooks
-                localStorage.setItem('gymflow_member_id', data.user.id);
-                localStorage.setItem('gymflow_member_name', data.user.user_metadata?.name || 'Member');
-
-                toast.success(`Welcome back!`);
-                router.push('/mobile/dashboard');
+            if (!data?.user) {
+                toast.error('Login failed');
+                setLoading(false);
+                return;
             }
-        } catch (error) {
+
+            // 2. Verify User Role
+            const role = data.user.user_metadata?.role;
+            if (role !== 'member') {
+                console.warn(`Login attempt by non-member role: ${role}`);
+                await supabase.auth.signOut(); // Force logout
+
+                if (role === 'gym_owner') {
+                    toast.error('This app is for Members only. Gym Owners please use the Dashboard.');
+                } else {
+                    toast.error('Access denied. Member account required.');
+                }
+                setLoading(false);
+                return;
+            }
+
+            // 3. Verify Member DB Record exists & get details
+            // We use the auth ID to fetch the member record
+            const { data: memberData, error: dbError } = await supabase
+                .from('members')
+                .select('id, name, status, gym_owner_id')
+                .eq('id', data.user.id)
+                .single();
+
+            if (dbError || !memberData) {
+                console.error('Member DB record missing for Auth User:', data.user.id);
+                toast.error('Account corrupted: Login exists but Profile missing. Please contact support.');
+                await supabase.auth.signOut();
+                setLoading(false);
+                return;
+            }
+
+            // 4. Success - Set Session & Redirect
+            localStorage.setItem('gymflow_member_id', memberData.id);
+            localStorage.setItem('gymflow_member_name', memberData.name || data.user.user_metadata?.name || 'Member');
+
+            // Optional: Store gym_owner_id if needed for multi-tenant context
+            if (memberData.gym_owner_id) {
+                localStorage.setItem('gymflow_gym_id', memberData.gym_owner_id);
+            }
+
+            toast.success(`Welcome back, ${memberData.name}!`);
+            router.push('/mobile/dashboard');
+
+        } catch (error: any) {
             console.error('Login error:', error);
-            toast.error('Connection failed');
+            toast.error(error.message || 'Connection failed');
         } finally {
             setLoading(false);
         }

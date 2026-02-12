@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -47,6 +48,43 @@ export default function SettingsPage() {
         }
     };
 
+    const [passwordData, setPasswordData] = useState({
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordLoading, setPasswordLoading] = useState(false);
+
+    // ... existing loadSettings ...
+
+    const handlePasswordChange = async () => {
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            toast.error("Passwords do not match");
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            toast.error("Password must be at least 6 characters");
+            return;
+        }
+
+        setPasswordLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: passwordData.newPassword
+            });
+
+            if (error) throw error;
+
+            toast.success("Password updated successfully");
+            setPasswordData({ newPassword: '', confirmPassword: '' });
+        } catch (error: any) {
+            console.error('Password update error:', error);
+            toast.error(error.message || "Failed to update password");
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -78,11 +116,12 @@ export default function SettingsPage() {
             </div>
 
             <Tabs defaultValue="gym" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="gym">Gym Profile</TabsTrigger>
                     <TabsTrigger value="integrations">Integrations</TabsTrigger>
                     <TabsTrigger value="notifications">Notifications</TabsTrigger>
                     <TabsTrigger value="billing">Billing</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
                 </TabsList>
 
                 {/* Gym Profile Tab */}
@@ -422,6 +461,48 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {/* Security Tab */}
+                <TabsContent value="security" className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Change Password</CardTitle>
+                            <CardDescription>Update your account password</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-4 max-w-md">
+                                <div>
+                                    <Label>New Password</Label>
+                                    <Input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={passwordData.newPassword}
+                                        onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <div>
+                                    <Label>Confirm Password</Label>
+                                    <Input
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={passwordData.confirmPassword}
+                                        onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <Button
+                                    onClick={handlePasswordChange}
+                                    disabled={passwordLoading || !passwordData.newPassword}
+                                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                                >
+                                    {passwordLoading ? "Updating..." : "Update Password"}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
             </Tabs>
         </div>
     );

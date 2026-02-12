@@ -97,6 +97,15 @@ export default function ForgotPasswordPage() {
                     >
                         {loading ? 'Sending...' : 'Send Reset Link'}
                     </Button>
+
+                    <div className="text-center mt-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <p className="text-xs text-gray-500 mb-1">
+                            ⚠️ Not receiving the email?
+                        </p>
+                        <p className="text-sm text-gray-600">
+                            Ask your <strong>Gym Owner</strong> to reset your password directly from their Dashboard.
+                        </p>
+                    </div>
                 </form>
             </div>
         </div>

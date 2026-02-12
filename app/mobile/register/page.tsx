@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserPlus, ShieldAlert, AlertCircle } from 'lucide-react';
+import { ShieldAlert, AlertCircle } from 'lucide-react';
 
 export default function MobileRegisterPage() {
     return (

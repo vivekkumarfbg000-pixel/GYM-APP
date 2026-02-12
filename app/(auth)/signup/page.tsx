@@ -75,14 +75,14 @@ export default function SignupPage() {
                 // Handle specific error cases
                 if (authError.message.includes('already registered')) {
                     toast.error('This email is already registered. Please login instead.');
-                } else if (authError.message.includes('Invalid API key')) {
-                    toast.error('Authentication service error. Using fallback registration...');
-                    // Continue with database creation even if Auth fails
                 } else {
                     toast.error(authError.message);
                 }
 
-                // Don't return here - continue with gym owner creation
+                // CRITICAL FIX: Do NOT proceed if Auth fails. 
+                // Previously, this continued to create a DB record without an Auth User, leading to broken accounts.
+                setLoading(false);
+                return;
             }
 
             // Step 2: Create gym owner in database
