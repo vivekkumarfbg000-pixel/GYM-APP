@@ -30,39 +30,30 @@ export default function WorkoutHubPage() {
                 <div className="absolute bottom-0 right-10 w-24 h-24 bg-white/5 rounded-full blur-xl"></div>
             </div>
 
-            {/* Workout Modes */}
+            {/* Smart Workout Modes */}
             <div className="grid grid-cols-1 gap-4">
-                {/* Gym Session */}
-                <Link href="/mobile/workout/gym" className="group">
-                    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl group-hover:scale-110 transition-transform">
-                                <Dumbbell size={28} />
+                {/* Unified Smart Session */}
+                <Link href="/mobile/workout/session" className="group">
+                    <div className="bg-black text-white rounded-3xl p-6 border border-gray-800 shadow-xl relative overflow-hidden">
+                        <div className="flex items-start justify-between mb-8">
+                            <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md">
+                                <span className="text-2xl">⚡</span>
                             </div>
-                            <div className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-300 group-hover:bg-blue-600 group-hover:text-white group-hover:border-transparent transition-colors">
-                                ➔
+                            <div className="flex gap-1">
+                                <span className="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded">GPS ON</span>
+                                <span className="bg-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-1 rounded">AI ON</span>
                             </div>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">Gym Session</h3>
-                        <p className="text-sm text-gray-500">Log strength training, sets, reps & weights.</p>
-                        <div className="absolute bottom-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-8 -mb-8 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    </div>
-                </Link>
 
-                {/* Outdoor Run */}
-                <Link href="/mobile/workout/run" className="group">
-                    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="bg-green-50 text-green-600 p-3 rounded-2xl group-hover:scale-110 transition-transform">
-                                <MapPin size={28} />
-                            </div>
-                            <div className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-300 group-hover:bg-green-600 group-hover:text-white group-hover:border-transparent transition-colors">
-                                ➔
-                            </div>
+                        <h3 className="text-2xl font-bold mb-1">Start Smart Session</h3>
+                        <p className="text-gray-400 text-sm mb-6">One button for everything. We'll track your run, gym sets, and calories automatically.</p>
+
+                        <div className="flex items-center gap-2 text-sm font-bold text-white bg-white/10 py-3 px-4 rounded-xl justify-center group-hover:bg-white group-hover:text-black transition-colors">
+                            START NOW <div className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] ml-1">➔</div>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">Outdoor Run</h3>
-                        <p className="text-sm text-gray-500">Track GPS route, distance, and pace.</p>
-                        <div className="absolute bottom-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-2xl -mr-8 -mb-8 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                        {/* Decor */}
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl -mr-10 -mt-10 animate-pulse"></div>
                     </div>
                 </Link>
             </div>

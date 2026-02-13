@@ -1,20 +1,28 @@
 -- Community Helper Functions
 
 -- 1. TOGGLE LIKE (for Posts)
-CREATE OR REPLACE FUNCTION toggle_like(p_post_id UUID, p_member_id UUID)
+-- 1. TOGGLE REACTION
+CREATE OR REPLACE FUNCTION toggle_reaction(p_post_id UUID, p_member_id UUID, p_type TEXT)
 RETURNS VOID AS $$
 DECLARE
-    exists_check BOOLEAN;
+    existing_type TEXT;
 BEGIN
-    SELECT EXISTS(SELECT 1 FROM post_likes WHERE post_id = p_post_id AND member_id = p_member_id) INTO exists_check;
+    SELECT reaction_type INTO existing_type FROM post_reactions WHERE post_id = p_post_id AND member_id = p_member_id;
     
-    IF exists_check THEN
-        DELETE FROM post_likes WHERE post_id = p_post_id AND member_id = p_member_id;
-        -- Decrement like count (optional if valid triggers exist, but safety net)
-        UPDATE posts SET likes = GREATEST(0, likes - 1) WHERE id = p_post_id;
+    IF existing_type IS NOT NULL THEN
+        IF existing_type = p_type THEN
+            -- Remove if same reaction clicked
+            DELETE FROM post_reactions WHERE post_id = p_post_id AND member_id = p_member_id;
+            -- Decrement like count (Post table 'likes' col now represents total reactions for backward compatibility)
+            UPDATE posts SET likes = GREATEST(0, likes - 1) WHERE id = p_post_id;
+        ELSE
+            -- Change reaction type
+            UPDATE post_reactions SET reaction_type = p_type WHERE post_id = p_post_id AND member_id = p_member_id;
+        END IF;
     ELSE
-        INSERT INTO post_likes (post_id, member_id) VALUES (p_post_id, p_member_id);
-        -- Increment like count
+        -- Add new reaction
+        INSERT INTO post_reactions (post_id, member_id, reaction_type) VALUES (p_post_id, p_member_id, p_type);
+        -- Increment count
         UPDATE posts SET likes = likes + 1 WHERE id = p_post_id;
     END IF;
 END;

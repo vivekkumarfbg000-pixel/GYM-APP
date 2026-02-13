@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { generateGroqResponse, GroqModels } from '@/lib/groq';
 
 export async function POST(req: Request) {
     try {
@@ -60,19 +58,16 @@ export async function POST(req: Request) {
         }
         `;
 
-        // 3. Generate Insight using Gemini
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-
+        // 3. Generate Insight using Groq
         let insightData;
         try {
+            const text = await generateGroqResponse(prompt, true, GroqModels.LLAMA_3_1_8B); // Fast model for insights
+
             // Clean markdown code blocks if present
             const jsonText = text.replace(/```json/g, '').replace(/```/g, '').trim();
             insightData = JSON.parse(jsonText);
         } catch (e) {
-            console.error("Failed to parse AI response", text);
+            console.error("Failed to parse AI response or Groq error", e);
             // Fallback
             insightData = {
                 title: "Keep Going!",

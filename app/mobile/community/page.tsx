@@ -14,6 +14,7 @@ import { CommunityFeedSkeleton, LeaderboardSkeleton } from '@/components/shared/
 
 export default function CommunityPage() {
     const [activeTab, setActiveTab] = useState<'feed' | 'leaderboard' | 'challenges' | 'duels'>('feed');
+    const [challenge, setChallenge] = useState<any>(null);
     const [feed, setFeed] = useState<any[]>([]);
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [challenges, setChallenges] = useState<any[]>([]);
@@ -136,16 +137,50 @@ export default function CommunityPage() {
         }
     };
 
-    const handleLike = async (postId: string) => {
+    const handleLike = async (postId: string, reactionType: string = 'like') => {
         if (!memberId) return;
 
-        // Optimistic update
+        // Special case for AI Analysis
+        if (reactionType === 'analyze') {
+            try {
+                toast.promise(
+                    fetch('/api/ai/community-coach', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ postId, memberId })
+                    }).then(res => res.json()),
+                    {
+                        loading: 'Coach is analyzing...',
+                        success: (data) => {
+                            if (data.analysis) {
+                                // Update local state to show analysis immediately
+                                setFeed(prev => prev.map(p =>
+                                    p.id === postId ? { ...p, ai_analysis: data.analysis } : p
+                                ));
+                                return 'Analysis Ready! 🧠';
+                            }
+                            return 'Analysis Complete';
+                        },
+                        error: 'Analysis failed'
+                    }
+                );
+            } catch (e) {
+                console.error(e);
+            }
+            return;
+        }
+
+        // Optimistic update for Reactions
         setFeed(prev => prev.map(p => {
             if (p.id === postId) {
+                const isRemoving = p.userReaction === reactionType;
+                const isChanging = p.userReaction && p.userReaction !== reactionType;
+
                 return {
                     ...p,
-                    isLiked: !p.isLiked,
-                    likes: p.isLiked ? p.likes - 1 : p.likes + 1
+                    isLiked: !isRemoving, // Legacy support
+                    userReaction: isRemoving ? null : reactionType,
+                    likes: isRemoving ? p.likes - 1 : (isChanging ? p.likes : p.likes + 1)
                 };
             }
             return p;
@@ -155,10 +190,10 @@ export default function CommunityPage() {
             await fetch('/api/community/interact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'like', postId, memberId })
+                body: JSON.stringify({ action: 'like', postId, memberId, reactionType })
             });
         } catch (e) {
-            toast.error("Failed to like");
+            toast.error("Failed to react");
             loadData(memberId); // Revert on error
         }
     };
@@ -341,9 +376,14 @@ export default function CommunityPage() {
                     <h1 className="text-xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
                         Community
                     </h1>
-                    <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs transition-transform-200 hover:scale-110">
-                        {/* User Level - Hardcoded for demo, could filter from leaderboard */}
-                        LVL 5
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 bg-orange-50 px-3 py-1 rounded-full border border-orange-100">
+                            <Flame size={14} className="text-orange-500 fill-orange-500" />
+                            <span className="text-xs font-bold text-orange-700">12 Day Streak</span>
+                        </div>
+                        <div className="h-8 w-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md shadow-orange-200">
+                            5
+                        </div>
                     </div>
                 </div>
 
@@ -424,6 +464,27 @@ export default function CommunityPage() {
                                     </div>
                                 </div>
 
+                                {/* Daily AI Challenge Card */}
+                                {challenge && (
+                                    <div className="mb-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl p-4 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">🏆</div>
+                                        <div className="relative z-10">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">
+                                                    AI Daily Challenge
+                                                </span>
+                                                <span className="text-xl">{challenge.emoji}</span>
+                                            </div>
+                                            <h3 className="font-bold text-lg mb-1">{challenge.title}</h3>
+                                            <p className="text-xs text-white/90 mb-3">{challenge.description}</p>
+                                            <button className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-bold active:scale-95 transition-transform">
+                                                Accept Challenge
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Posts Feed */}
                                 {/* Polls Section */}
                                 {polls.map(poll => (
                                     <PollCard

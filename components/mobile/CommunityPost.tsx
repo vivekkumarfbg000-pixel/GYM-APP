@@ -11,7 +11,7 @@ interface CommunityPostProps {
     isExpanded: boolean;
     comments: any[];
     loadingComments: boolean;
-    onLike: (postId: string) => void;
+    onLike: (postId: string, reactionType?: string) => void;
     onToggleComments: (postId: string) => void;
     onPostComment: (postId: string, content: string) => void;
 }
@@ -28,6 +28,16 @@ export function CommunityPost({
 }: CommunityPostProps) {
     const isAi = post.type === 'ai';
     const isOwner = post.type === 'owner';
+
+
+    const [showReactions, setShowReactions] = useState(false);
+
+    const reactionIcons: Record<string, string> = {
+        like: '❤️',
+        fire: '🔥',
+        muscle: '💪',
+        trophy: '🏆'
+    };
 
     return (
         <div className={`bg-white p-5 rounded-3xl shadow-sm border transition-all duration-300 ${isAi ? 'border-purple-200 bg-gradient-to-br from-white to-purple-50/30' : 'border-gray-100 hover:shadow-md'}`}>
@@ -55,28 +65,79 @@ export function CommunityPost({
 
             <p className="text-gray-700 text-sm mb-4 leading-relaxed whitespace-pre-wrap pl-1">{post.content}</p>
 
+            {/* AI Analysis Box */}
+            {post.ai_analysis && (
+                <div className="mb-4 bg-purple-50 border border-purple-100 p-3 rounded-xl flex gap-3 items-start animate-in fade-in zoom-in-95">
+                    <div className="bg-purple-100 p-1.5 rounded-lg text-purple-600 mt-0.5">
+                        <Bot size={16} />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-purple-800 mb-0.5">Coach Insight</p>
+                        <p className="text-xs text-purple-700 leading-relaxed">"{post.ai_analysis}"</p>
+                    </div>
+                </div>
+            )}
+
             {post.image && (
                 <div className="mb-4 rounded-2xl overflow-hidden shadow-sm border border-gray-100">
                     <img src={post.image} alt="Post" className="w-full h-auto object-cover max-h-72" />
                 </div>
             )}
 
-            <div className="flex items-center gap-6 pt-2 border-t border-gray-50">
+            <div className="flex items-center gap-2 pt-2 border-t border-gray-50 relative">
+
+                {/* Reaction Picker */}
+                {showReactions && (
+                    <div className="absolute bottom-12 left-0 bg-white shadow-xl border border-gray-100 rounded-full p-2 flex gap-2 animate-in slide-in-from-bottom-2 z-10">
+                        {Object.entries(reactionIcons).map(([type, icon]) => (
+                            <button
+                                key={type}
+                                onClick={() => {
+                                    onLike(post.id, type);
+                                    setShowReactions(false);
+                                }}
+                                className="hover:scale-125 transition-transform text-xl p-1"
+                            >
+                                {icon}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 <button
-                    onClick={() => onLike(post.id)}
-                    className={`flex items-center gap-2 text-sm font-medium transition-all active:scale-95 ${post.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}
+                    onClick={() => setShowReactions(!showReactions)}
+                    className={`flex items-center gap-2 text-sm font-medium transition-all active:scale-95 px-2 py-1.5 rounded-xl hover:bg-gray-50 ${post.userReaction ? 'text-orange-500' : 'text-gray-500'}`}
                 >
-                    <Heart size={20} fill={post.isLiked ? "currentColor" : "none"} className={post.isLiked ? "drop-shadow-sm" : ""} />
-                    <span>{post.likes}</span>
+                    {post.userReaction ? (
+                        <span>{reactionIcons[post.userReaction] || '❤️'}</span>
+                    ) : (
+                        <Heart size={20} />
+                    )}
+                    <span>{post.likes > 0 ? post.likes : 'Like'}</span>
                 </button>
+
                 <button
                     onClick={() => onToggleComments(post.id)}
-                    className={`flex items-center gap-2 text-sm font-medium transition-all active:scale-95 ${isExpanded ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
+                    className={`flex items-center gap-2 text-sm font-medium transition-all active:scale-95 px-2 py-1.5 rounded-xl hover:bg-gray-50 ${isExpanded ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}
                 >
                     <MessageCircle size={20} fill={isExpanded ? "currentColor" : "none"} />
-                    <span>{post.comments}</span>
+                    <span>{post.comments > 0 ? post.comments : 'Comment'}</span>
                 </button>
-                <button className="ml-auto text-gray-400 hover:text-gray-600 transition-colors">
+
+                {/* AI Coach Button for non-AI posts */}
+                {!isAi && !post.ai_analysis && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onLike(post.id, 'analyze')} // Hack: using onLike to trigger analysis for now, or need new prop
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 gap-1 ml-2"
+                    >
+                        <Bot size={16} />
+                        <span className="text-xs">Analyze</span>
+                    </Button>
+                )}
+
+                <button className="ml-auto text-gray-400 hover:text-gray-600 transition-colors p-2">
                     <Share2 size={20} />
                 </button>
             </div>

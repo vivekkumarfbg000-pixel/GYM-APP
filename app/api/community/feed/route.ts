@@ -18,15 +18,21 @@ export async function GET(req: Request) {
                 .select('*', { count: 'exact', head: true })
                 .eq('post_id', post.id);
 
-            // Check if liked by current user
+            // Check if liked by current user and get reaction type
             let isLiked = false;
+            let userReaction = null;
             if (memberId) {
-                const { count } = await supabase
-                    .from('post_likes')
-                    .select('*', { count: 'exact', head: true })
+                const { data: reaction } = await supabase
+                    .from('post_reactions')
+                    .select('reaction_type')
                     .eq('post_id', post.id)
-                    .eq('member_id', memberId);
-                isLiked = (count || 0) > 0;
+                    .eq('member_id', memberId)
+                    .single();
+
+                if (reaction) {
+                    isLiked = true;
+                    userReaction = reaction.reaction_type;
+                }
             }
 
             // Get actual like count (if not using the column)
@@ -41,8 +47,10 @@ export async function GET(req: Request) {
                 image: post.image_url,
                 likes: post.likes || 0,
                 isLiked,
+                userReaction,
                 comments: commentCount || 0,
-                type: post.type || 'regular'
+                type: post.type || 'regular',
+                ai_analysis: post.ai_analysis
             };
         }));
 

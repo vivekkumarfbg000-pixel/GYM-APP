@@ -6,9 +6,11 @@ export async function POST(req: Request) {
         const { action, postId, memberId, content } = await req.json();
 
         if (action === 'like') {
-            const { error } = await supabase.rpc('toggle_like', {
+            const { reactionType = 'like' } = await req.json(); // Default to 'like' if not provided
+            const { error } = await supabase.rpc('toggle_reaction', {
                 p_post_id: postId,
-                p_member_id: memberId
+                p_member_id: memberId,
+                p_type: reactionType
             });
             if (error) throw error;
             return NextResponse.json({ success: true });

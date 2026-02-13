@@ -22,12 +22,22 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 -- 2. POST LIKES
-CREATE TABLE IF NOT EXISTS post_likes (
+-- 2. POST REACTIONS (Replaced Likes)
+CREATE TABLE IF NOT EXISTS post_reactions (
     post_id UUID REFERENCES posts(id) ON DELETE CASCADE,
     member_id UUID REFERENCES members(id) ON DELETE CASCADE,
+    reaction_type TEXT DEFAULT 'like', -- 'like', 'fire', 'muscle', 'trophy'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (post_id, member_id)
 );
+
+-- Add AI Analysis column if not exists
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'posts' AND column_name = 'ai_analysis') THEN
+        ALTER TABLE posts ADD COLUMN ai_analysis TEXT;
+    END IF;
+END $$;
 
 -- 3. POST COMMENTS
 CREATE TABLE IF NOT EXISTS post_comments (

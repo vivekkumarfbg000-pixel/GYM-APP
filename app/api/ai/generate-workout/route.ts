@@ -18,7 +18,7 @@ const supabaseAdmin = createClient(
 
 async function handler(request: NextRequest) {
     const body = await request.json();
-    const { memberId, goal, duration = 45 } = body;
+    const { memberId, goal, duration = 45, focus = 'Full Body' } = body;
 
     // Validate required fields
     if (!memberId) {
@@ -29,7 +29,7 @@ async function handler(request: NextRequest) {
         throw ApiErrors.badRequest('Workout goal is required');
     }
 
-    logger.info(`Generating workout for member ${memberId}`, { goal, duration }, memberId);
+    logger.info(`Generating workout for member ${memberId}`, { goal, duration, focus }, memberId);
 
     // 1. Fetch Member Profile for context (Using Admin Client to bypass RLS)
     const { data: member, error: memberError } = await supabaseAdmin
@@ -52,7 +52,7 @@ async function handler(request: NextRequest) {
 
     // 2. Prompt Engineering for Groq
     const prompt = `
-        Act as an elite personal trainer. Create a structured ${duration}-minute workout plan for a client with the goal: "${goal}".
+        Act as an elite personal trainer. Create a structured ${duration}-minute workout plan for a client with the goal: "${goal}" and a focus on "${focus}".
         Context: ${userContext}.
         
         Return the response ONLY as a valid JSON object with the following structure:
