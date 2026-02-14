@@ -1,4 +1,3 @@
-```typescript
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { generateGroqResponse } from '@/lib/groq';
@@ -63,31 +62,32 @@ export async function POST(request: Request) {
 
         // 3. Call Groq AI
         try {
+            // Ensure backticks are present for template literal
             const prompt = `Generate a personalized workout plan for a gym member.
 Member Stats:
-- Level: ${ memberStats.level }
-- Goal: ${ memberStats.goal }
-- Workouts Completed: ${ memberStats.workouts_completed }
+- Level: ${memberStats.level}
+- Goal: ${memberStats.goal}
+- Workouts Completed: ${memberStats.workouts_completed}
 
 Return ONLY valid JSON in this exact format(no markdown, no code blocks):
 {
     "title": "Workout Name",
-        "duration": 45,
-            "calories": 300,
-                "focus": "Strength Building",
-                    "exercises": [
-                        { "name": "Exercise Name", "sets": 3, "reps": "12-15", "rest": "60s" }
-                    ]
+    "duration": 45,
+    "calories": 300,
+    "focus": "Strength Building",
+    "exercises": [
+        { "name": "Exercise Name", "sets": 3, "reps": "12-15", "rest": "60s" }
+    ]
 }
 
 Requirements:
 - Include 5 exercises
-    - Make it challenging but suitable for level ${ memberStats.level }
-        - Focus on: ${ memberStats.goal }
+- Make it challenging but suitable for level ${memberStats.level}
+- Focus on: ${memberStats.goal}
 - Use common gym exercises(no equipment needed or basic dumbbells)`;
 
             const text = await generateGroqResponse(prompt, true); // true for JSON mode
-            
+
             // Remove markdown code blocks if present
             const cleanJson = text.replace(/```json\n ? /g, '').replace(/```\n?/g, '').trim();
 

@@ -182,8 +182,9 @@
     }
   }
 
+  /* FIXED: Removed spaces from shadow utility AND used standard tailwind syntax where possible to avoid parser errors */
   .hover-glow {
-    @apply transition-all duration-300 hover:shadow-[0_0_20px_rgba(99, 102, 241, 0.5)] dark:hover:shadow-[0_0_20px_rgba(99, 102, 241, 0.3)];
+    @apply transition-all duration-300 hover:shadow-[0_0_20px_#6366f180] dark:hover:shadow-[0_0_20px_#6366f14d];
   }
 }
 
