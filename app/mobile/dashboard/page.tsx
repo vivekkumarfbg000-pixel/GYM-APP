@@ -16,6 +16,7 @@ import { TodaysMissionCard } from '@/components/mobile/TodaysMissionCard';
 import { db } from '@/lib/supabase';
 
 export default function MobileDashboard() {
+    const router = useRouter();
     const [name, setName] = useState('');
     const [stats, setStats] = useState({ workouts: 0, distance: 0, calories: 0 });
     const [memberData, setMemberData] = useState<any>(null);
