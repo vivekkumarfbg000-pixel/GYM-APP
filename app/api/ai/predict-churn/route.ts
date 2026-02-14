@@ -1,13 +1,5 @@
 import { NextResponse } from 'next/server';
 import { db, supabase } from '@/lib/supabase';
-
-// We'll use a simple heuristic for the demo speed, or Gemini if we want detailed "reasons"
-// For a "Predictive" dashboard, calculating scores for ALL members can be slow with LLM.
-// Strategy: Calculate Risk Score based on logic, then use LLM to generate "Recovery Plan" for high risk ones on demand.
-// Or: Batch analyze top 5 worst members.
-
-import { NextResponse } from 'next/server';
-import { db, supabase } from '@/lib/supabase';
 import { generateGroqResponse, GroqModels } from '@/lib/groq';
 
 export async function POST(req: Request) {

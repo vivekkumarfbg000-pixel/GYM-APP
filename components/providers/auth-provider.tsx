@@ -26,16 +26,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+
     // Valid fallback key to prevent "Forbidden use of secret API key" error
     const getSafeKey = () => {
         // FORCE SAFE KEY
         return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1bWxqbWFjeG5rZ2VvZXdobGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMjMzMDYsImV4cCI6MjA4NTU5OTMwNn0.IDNKUTKLPsahV59wdcFx1COuqKer5zAg8zJfVM0m4Yc';
     };
 
-    const supabase = createBrowserClient(
+    // FIX: Initialize client ONCE to prevent recreation on every render
+    const [supabase] = useState(() => createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
         getSafeKey()
-    );
+    ));
 
     useEffect(() => {
         const getSession = async () => {
@@ -43,6 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const { data, error } = await supabase.auth.getSession();
                 if (error) {
                     console.warn('Auth session error:', error.message);
+                } else if (data?.session) {
+                    console.log('✅ Session restored:', data.session.user.email);
+                } else {
+                    console.log('⚠️ No active session found on mount');
                 }
                 setSession(data?.session ?? null);
                 setUser(data?.session?.user ?? null);
@@ -56,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         getSession();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            console.log('🔄 Auth state changed:', _event);
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);

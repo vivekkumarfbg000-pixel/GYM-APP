@@ -150,178 +150,177 @@ export default function AIWorkoutPage() {
                         </div>
                     </div>
                 ) : (
-                ): (
-                        <div className = "w-full max-w-sm space-y-6">
-                        {/* Configuration Form */ }
+                    <div className="w-full max-w-sm space-y-6">
+                        {/* Configuration Form */}
                         <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-5">
-                    {/* Goal Selector */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Primary Goal</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {['Hypertrophy', 'Strength', 'Endurance'].map(g => (
-                                <button
-                                    key={g}
-                                    onClick={() => setConfig({ ...config, goal: g })}
-                                    className={`py-2 px-1 rounded-lg text-xs font-bold transition-all ${config.goal === g ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'bg-slate-800 text-gray-400 hover:bg-slate-700'}`}
-                                >
-                                    {g}
-                                </button>
-                            ))}
+                            {/* Goal Selector */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Primary Goal</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['Hypertrophy', 'Strength', 'Endurance'].map(g => (
+                                        <button
+                                            key={g}
+                                            onClick={() => setConfig({ ...config, goal: g })}
+                                            className={`py-2 px-1 rounded-lg text-xs font-bold transition-all ${config.goal === g ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'bg-slate-800 text-gray-400 hover:bg-slate-700'}`}
+                                        >
+                                            {g}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Focus Selector */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Today's Focus</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Full Body', 'Upper Body', 'Lower Body', 'Core'].map(f => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setConfig({ ...config, focus: f })}
+                                            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${config.focus === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-800 text-gray-400 hover:bg-slate-700'}`}
+                                        >
+                                            {f}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Duration Slider */}
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Duration</label>
+                                    <span className="text-xs font-bold text-purple-400">{config.duration} min</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="15"
+                                    max="90"
+                                    step="15"
+                                    value={config.duration}
+                                    onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) })}
+                                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                                />
+                                <div className="flex justify-between text-[10px] text-gray-600 font-mono">
+                                    <span>Quick (15m)</span>
+                                    <span>Epic (90m)</span>
+                                </div>
+                            </div>
                         </div>
+
+                        <button
+                            onClick={generateNewWorkout}
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                        >
+                            <Zap className="w-5 h-5 group-hover:animate-pulse" />
+                            Generate Custom Plan
+                        </button>
                     </div>
+                )
+                }
 
-                    {/* Focus Selector */}
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Today's Focus</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {['Full Body', 'Upper Body', 'Lower Body', 'Core'].map(f => (
-                                <button
-                                    key={f}
-                                    onClick={() => setConfig({ ...config, focus: f })}
-                                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${config.focus === f ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'bg-slate-800 text-gray-400 hover:bg-slate-700'}`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Duration Slider */}
-                    <div className="space-y-3">
-                        <div className="flex justify-between">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Duration</label>
-                            <span className="text-xs font-bold text-purple-400">{config.duration} min</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="15"
-                            max="90"
-                            step="15"
-                            value={config.duration}
-                            onChange={(e) => setConfig({ ...config, duration: parseInt(e.target.value) })}
-                            className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                        />
-                        <div className="flex justify-between text-[10px] text-gray-600 font-mono">
-                            <span>Quick (15m)</span>
-                            <span>Epic (90m)</span>
-                        </div>
-                    </div>
-                </div>
-
-                <button
-                    onClick={generateNewWorkout}
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-900/20 active:scale-95 transition-all flex items-center justify-center gap-2 group"
-                >
-                    <Zap className="w-5 h-5 group-hover:animate-pulse" />
-                    Generate Custom Plan
-                </button>
-            </div>
-        )
-    }
-
-    {
-        workout && (
-            <button
-                onClick={() => setWorkout(null)} // Reset for demo purposes
-                className="text-gray-500 text-xs mt-8 underline"
-            >
-                Cancel Request (Demo)
-            </button>
-        )
-    }
+                {
+                    workout && (
+                        <button
+                            onClick={() => setWorkout(null)} // Reset for demo purposes
+                            className="text-gray-500 text-xs mt-8 underline"
+                        >
+                            Cancel Request (Demo)
+                        </button>
+                    )
+                }
             </div >
         );
-}
+    }
 
-// ... (Keep existing Workout View logic but map `workout.plan_data` instead of mocked `workout.exercises`)
-// Converting the existing 'isWorkingOut' view to use the fetched data:
+    // ... (Keep existing Workout View logic but map `workout.plan_data` instead of mocked `workout.exercises`)
+    // Converting the existing 'isWorkingOut' view to use the fetched data:
 
-const currentExercise = workout.plan_data[currentExerciseIndex];
+    const currentExercise = workout.plan_data[currentExerciseIndex];
 
-return (
-    <div className="min-h-screen bg-black text-white pb-20">
-        {/* Header */}
-        <header className="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur-md z-10 border-b border-gray-800">
-            <div className="flex items-center justify-between p-4">
-                <button onClick={() => router.back()} className="text-gray-400 hover:text-white">
-                    <ChevronLeft />
+    return (
+        <div className="min-h-screen bg-black text-white pb-20">
+            {/* Header */}
+            <header className="fixed top-0 left-0 right-0 bg-black/80 backdrop-blur-md z-10 border-b border-gray-800">
+                <div className="flex items-center justify-between p-4">
+                    <button onClick={() => router.back()} className="text-gray-400 hover:text-white">
+                        <ChevronLeft />
+                    </button>
+                    <h1 className="font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                        Today's Session
+                    </h1>
+                    <div className="w-6" />
+                </div>
+            </header>
+
+            <main className="pt-20 px-4">
+                {/* AI Insight Card */}
+                {workout.ai_notes && (
+                    <div className="mb-6 bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                            <Brain className="w-5 h-5 text-purple-400 shrink-0 mt-1" />
+                            <div>
+                                <h3 className="font-semibold text-purple-200 text-sm mb-1">Coach Insight</h3>
+                                <p className="text-xs text-purple-300/80 leading-relaxed">
+                                    {workout.ai_notes}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
+                        <div className="flex items-center gap-2 text-gray-400 mb-1">
+                            <Clock className="w-4 h-4" />
+                            <span className="text-xs font-medium">DURATION</span>
+                        </div>
+                        <p className="text-2xl font-bold">{workout.duration} min</p>
+                    </div>
+                    <div className="bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
+                        <div className="flex items-center gap-2 text-gray-400 mb-1">
+                            <Flame className="w-4 h-4" />
+                            <span className="text-xs font-medium">BURN</span>
+                        </div>
+                        <p className="text-2xl font-bold">~450 kcal</p>
+                    </div>
+                </div>
+
+                {/* Exercise List */}
+                <h3 className="text-lg font-semibold mb-4">Routine ({workout.plan_data.length} Exercises)</h3>
+                <div className="space-y-3">
+                    {workout.plan_data.map((ex: any, idx: number) => (
+                        <div key={idx} className="bg-gray-900 rounded-xl p-4 flex items-center gap-4 border border-gray-800">
+                            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold">
+                                {idx + 1}
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-medium">{ex.name}</h4>
+                                <p className="text-sm text-gray-500">{ex.sets} sets × {ex.reps}</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">
+                                    Rest: {ex.rest}s
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </main>
+
+            {/* Start Button */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
+                <button
+                    onClick={() => router.push('/mobile/workout/session')}
+                    className="w-full bg-white text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                    <Dumbbell className="w-5 h-5" />
+                    Start Gym Session
                 </button>
-                <h1 className="font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                    Today's Session
-                </h1>
-                <div className="w-6" />
-            </div>
-        </header>
-
-        <main className="pt-20 px-4">
-            {/* AI Insight Card */}
-            {workout.ai_notes && (
-                <div className="mb-6 bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-4">
-                    <div className="flex items-start gap-3">
-                        <Brain className="w-5 h-5 text-purple-400 shrink-0 mt-1" />
-                        <div>
-                            <h3 className="font-semibold text-purple-200 text-sm mb-1">Coach Insight</h3>
-                            <p className="text-xs text-purple-300/80 leading-relaxed">
-                                {workout.ai_notes}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
-                    <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <Clock className="w-4 h-4" />
-                        <span className="text-xs font-medium">DURATION</span>
-                    </div>
-                    <p className="text-2xl font-bold">{workout.duration} min</p>
-                </div>
-                <div className="bg-gray-900/50 p-4 rounded-2xl border border-gray-800">
-                    <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <Flame className="w-4 h-4" />
-                        <span className="text-xs font-medium">BURN</span>
-                    </div>
-                    <p className="text-2xl font-bold">~450 kcal</p>
-                </div>
             </div>
 
-            {/* Exercise List */}
-            <h3 className="text-lg font-semibold mb-4">Routine ({workout.plan_data.length} Exercises)</h3>
-            <div className="space-y-3">
-                {workout.plan_data.map((ex: any, idx: number) => (
-                    <div key={idx} className="bg-gray-900 rounded-xl p-4 flex items-center gap-4 border border-gray-800">
-                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 font-bold">
-                            {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                            <h4 className="font-medium">{ex.name}</h4>
-                            <p className="text-sm text-gray-500">{ex.sets} sets × {ex.reps}</p>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">
-                                Rest: {ex.rest}s
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </main>
-
-        {/* Start Button */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
-            <button
-                onClick={() => router.push('/mobile/workout/session')}
-                className="w-full bg-white text-black font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-                <Dumbbell className="w-5 h-5" />
-                Start Gym Session
-            </button>
         </div>
-
-    </div>
-);
+    );
 }
 
 const SparklesIcon = () => (
